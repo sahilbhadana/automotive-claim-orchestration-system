@@ -13,6 +13,7 @@ This repository currently includes:
 - health and readiness endpoints
 - claim domain model with lifecycle status persistence
 - claim creation, retrieval, listing, and status update APIs
+- policy lookup and coverage eligibility validation APIs
 
 ## Run locally
 
@@ -29,6 +30,7 @@ docker compose up --build
 - Health: `http://localhost:8000/api/v1/health`
 - Readiness: `http://localhost:8000/api/v1/ready`
 - Claims: `http://localhost:8000/api/v1/claims`
+- Policies: `http://localhost:8000/api/v1/policies`
 
 ## Initial structure
 

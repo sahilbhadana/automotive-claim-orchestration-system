@@ -27,9 +27,11 @@ def get_db_session() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     from app.models.claim import Claim
+    from app.models.policy import Policy
 
     # Importing the model registers its metadata before create_all runs.
     Claim.__table__
+    Policy.__table__
     Base.metadata.create_all(bind=engine)
 
 
