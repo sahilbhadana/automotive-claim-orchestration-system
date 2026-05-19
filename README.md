@@ -11,6 +11,8 @@ This repository currently includes:
 - PostgreSQL development container
 - Docker Compose setup
 - health and readiness endpoints
+- claim domain model with lifecycle status persistence
+- claim creation, retrieval, listing, and status update APIs
 
 ## Run locally
 
@@ -26,6 +28,7 @@ docker compose up --build
 - API docs: `http://localhost:8000/docs`
 - Health: `http://localhost:8000/api/v1/health`
 - Readiness: `http://localhost:8000/api/v1/ready`
+- Claims: `http://localhost:8000/api/v1/claims`
 
 ## Initial structure
 
@@ -34,8 +37,10 @@ app/
   api/
   core/
   db/
+  models/
+  schemas/
+  services/
   main.py
 ```
 
 This foundation is intentionally small so later days can add workflow orchestration, event publishing, fraud checks, document handling, and payout processing without reshaping the repo.
-
