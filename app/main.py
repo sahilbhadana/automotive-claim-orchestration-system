@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.api.routes import router as api_router
 from app.core.config import settings
+from app.db.session import init_db
 
 
 def create_application() -> FastAPI:
@@ -12,8 +13,12 @@ def create_application() -> FastAPI:
         redoc_url="/redoc",
     )
     app.include_router(api_router, prefix=settings.api_prefix)
+
+    @app.on_event("startup")
+    def on_startup() -> None:
+        init_db()
+
     return app
 
 
 app = create_application()
-

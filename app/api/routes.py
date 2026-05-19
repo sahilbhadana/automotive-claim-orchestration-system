@@ -1,9 +1,11 @@
 from fastapi import APIRouter
 
+from app.api.claim_routes import router as claim_router
 from app.core.config import settings
 from app.db.session import check_database_connection
 
-router = APIRouter(tags=["system"])
+router = APIRouter()
+router.include_router(claim_router)
 
 
 @router.get("/health")
@@ -23,4 +25,3 @@ async def readiness() -> dict[str, str]:
         "status": overall_status,
         "database": database_status,
     }
-
