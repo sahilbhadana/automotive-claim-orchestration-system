@@ -14,6 +14,7 @@ This repository currently includes:
 - claim domain model with lifecycle status persistence
 - claim creation, retrieval, listing, and status update APIs
 - policy lookup and coverage eligibility validation APIs
+- vehicle registration and driver verification APIs
 
 ## Run locally
 
@@ -31,6 +32,7 @@ docker compose up --build
 - Readiness: `http://localhost:8000/api/v1/ready`
 - Claims: `http://localhost:8000/api/v1/claims`
 - Policies: `http://localhost:8000/api/v1/policies`
+- Verifications: `http://localhost:8000/api/v1/verifications/vehicle-driver`
 
 ## Initial structure
 
