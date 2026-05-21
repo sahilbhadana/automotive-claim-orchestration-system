@@ -1,4 +1,6 @@
-
+from app.services.document_service import ensure_document_storage
+from app.services.document_service import list_claim_documents
+from app.services.document_service import store_claim_document
 from app.services.policy_service import create_policy
 from app.services.policy_service import get_policy_by_number
 from app.services.policy_service import list_policies
@@ -10,9 +12,12 @@ from app.services.workflow_service import get_allowed_transitions
 __all__ = [
     "create_policy",
     "execute_workflow_step",
+    "ensure_document_storage",
     "get_policy_by_number",
     "get_allowed_transitions",
+    "list_claim_documents",
     "list_policies",
+    "store_claim_document",
     "validate_policy_coverage",
     "verify_vehicle_and_driver",
 ]

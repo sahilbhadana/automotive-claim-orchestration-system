@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
     api_prefix: str = "/api/v1"
+    document_storage_path: str = "storage/documents"
+    max_document_size_bytes: int = 10 * 1024 * 1024
     database_url: str = (
         "postgresql+psycopg://claims_user:claims_password@localhost:5432/claims_db"
     )
@@ -26,4 +28,3 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-

@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.api.routes import router as api_router
 from app.core.config import settings
 from app.db.session import init_db
+from app.services.document_service import ensure_document_storage
 
 
 def create_application() -> FastAPI:
@@ -16,6 +17,7 @@ def create_application() -> FastAPI:
 
     @app.on_event("startup")
     def on_startup() -> None:
+        ensure_document_storage()
         init_db()
 
     return app
