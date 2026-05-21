@@ -15,6 +15,7 @@ This repository currently includes:
 - claim creation, retrieval, listing, and status update APIs
 - policy lookup and coverage eligibility validation APIs
 - vehicle registration and driver verification APIs
+- workflow state inspection and step execution APIs
 
 ## Run locally
 
@@ -33,6 +34,7 @@ docker compose up --build
 - Claims: `http://localhost:8000/api/v1/claims`
 - Policies: `http://localhost:8000/api/v1/policies`
 - Verifications: `http://localhost:8000/api/v1/verifications/vehicle-driver`
+- Workflow: `http://localhost:8000/api/v1/claims/{claim_id}/workflow`
 
 ## Initial structure
 

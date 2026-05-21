@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.claim_routes import router as claim_router
 from app.api.policy_routes import router as policy_router
 from app.api.verification_routes import router as verification_router
+from app.api.workflow_routes import router as workflow_router
 from app.core.config import settings
 from app.db.session import check_database_connection
 
@@ -10,6 +11,7 @@ router = APIRouter()
 router.include_router(claim_router)
 router.include_router(policy_router)
 router.include_router(verification_router)
+router.include_router(workflow_router)
 
 
 @router.get("/health")
