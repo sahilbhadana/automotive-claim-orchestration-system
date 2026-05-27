@@ -17,6 +17,7 @@ This repository currently includes:
 - vehicle registration and driver verification APIs
 - workflow state inspection and step execution APIs
 - claim document upload and evidence metadata APIs
+- celery-backed async workflow and claim processing tasks
 
 ## Run locally
 
@@ -37,6 +38,8 @@ docker compose up --build
 - Verifications: `http://localhost:8000/api/v1/verifications/vehicle-driver`
 - Workflow: `http://localhost:8000/api/v1/claims/{claim_id}/workflow`
 - Documents: `http://localhost:8000/api/v1/claims/{claim_id}/documents`
+- Async workflow: `http://localhost:8000/api/v1/claims/{claim_id}/workflow/execute-async`
+- Task status: `http://localhost:8000/api/v1/tasks/{task_id}`
 
 ## Initial structure
 

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     document_storage_path: str = "storage/documents"
     max_document_size_bytes: int = 10 * 1024 * 1024
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/1"
     database_url: str = (
         "postgresql+psycopg://claims_user:claims_password@localhost:5432/claims_db"
     )
