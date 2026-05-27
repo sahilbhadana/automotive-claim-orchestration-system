@@ -7,10 +7,12 @@ from app.models.claim import ClaimStatus
 from app.models.document import DocumentType
 from app.services.claim_service import get_claim_by_id
 from app.services.document_service import list_claim_documents
+from app.services.fraud_service import analyze_claim_for_fraud
 from app.services.policy_service import get_policy_by_number
 from app.services.workflow_service import build_workflow_transition_name
 from app.services.workflow_service import execute_workflow_step
 from app.workers.celery_app import celery_app
+from app.schemas.fraud import FraudCheckRequest
 
 
 @celery_app.task(name="claims.validate_images")
@@ -50,47 +52,51 @@ def validate_claim_images_task(claim_id: str) -> dict:
 
 
 @celery_app.task(name="claims.run_fraud_checks")
-def run_claim_fraud_checks_task(claim_id: str) -> dict:
+def run_claim_fraud_checks_task(
+    claim_id: str,
+    garage_name: str | None = None,
+    repair_estimate_amount: float | None = None,
+) -> dict:
     session = SessionLocal()
     try:
         claim_uuid = UUID(claim_id)
         claim = get_claim_by_id(session, claim_uuid)
         if claim is None:
-            return {"claim_id": claim_id, "risk_level": "UNKNOWN", "flags": ["Claim not found"]}
+            return {
+                "claim_id": claim_id,
+                "risk_level": "UNKNOWN",
+                "risk_score": 0,
+                "triggered_rules": ["claim_not_found"],
+            }
+
+        analysis = analyze_claim_for_fraud(
+            session=session,
+            claim=claim,
+            payload=None
+            if garage_name is None and repair_estimate_amount is None
+            else FraudCheckRequest(
+                garage_name=garage_name,
+                repair_estimate_amount=repair_estimate_amount,
+            ),
+        ).model_dump()
 
         documents = list_claim_documents(session, claim_uuid)
         policy = get_policy_by_number(session, claim.policy_number)
 
-        flags: list[str] = []
-        risk_score = 0
-
-        if float(claim.claim_amount) >= 250000:
-            flags.append("High claim amount")
-            risk_score += 2
-
         if not any(document.document_type == DocumentType.FIR for document in documents):
-            flags.append("FIR document missing")
-            risk_score += 2
+            analysis["triggered_rules"].append("missing_fir_document")
+            analysis["risk_score"] += 2
 
         if len(documents) < 2:
-            flags.append("Insufficient supporting evidence")
-            risk_score += 1
+            analysis["triggered_rules"].append("insufficient_supporting_evidence")
+            analysis["risk_score"] += 1
 
         if policy is None:
-            flags.append("Policy not found during fraud screening")
-            risk_score += 2
+            analysis["triggered_rules"].append("policy_missing_during_fraud_screening")
+            analysis["risk_score"] += 2
 
-        risk_level = "LOW"
-        if risk_score >= 4:
-            risk_level = "HIGH"
-        elif risk_score >= 2:
-            risk_level = "MEDIUM"
-
-        return {
-            "claim_id": claim_id,
-            "risk_level": risk_level,
-            "flags": flags,
-        }
+        analysis["risk_level"] = resolve_risk_level(analysis["risk_score"])
+        return analysis
     finally:
         session.close()
 
@@ -173,3 +179,11 @@ def execute_workflow_step_task(
         }
     finally:
         session.close()
+
+
+def resolve_risk_level(risk_score: int) -> str:
+    if risk_score >= 6:
+        return "HIGH"
+    if risk_score >= 3:
+        return "MEDIUM"
+    return "LOW"

@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from fastapi import status
 
 from app.api.dependencies import DatabaseSession
+from app.schemas.fraud import FraudCheckRequest
 from app.schemas.task import AsyncWorkflowExecutionRequest
 from app.schemas.task import NotificationTaskRequest
 from app.schemas.task import TaskDispatchRead
@@ -72,6 +73,7 @@ async def dispatch_image_validation_task(
 )
 async def dispatch_fraud_check_task(
     claim_id: UUID,
+    payload: FraudCheckRequest,
     session: DatabaseSession,
 ) -> TaskDispatchRead:
     claim = get_claim_by_id(session, claim_id)
@@ -81,7 +83,11 @@ async def dispatch_fraud_check_task(
             detail="Claim not found",
         )
 
-    task = run_claim_fraud_checks_task.delay(str(claim_id))
+    task = run_claim_fraud_checks_task.delay(
+        str(claim_id),
+        payload.garage_name,
+        payload.repair_estimate_amount,
+    )
     return TaskDispatchRead(task_id=task.id, task_name=task.task, status=task.status)
 
 

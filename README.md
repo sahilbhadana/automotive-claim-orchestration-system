@@ -18,6 +18,7 @@ This repository currently includes:
 - workflow state inspection and step execution APIs
 - claim document upload and evidence metadata APIs
 - celery-backed async workflow and claim processing tasks
+- fraud analysis rules engine with suspicious-claim detection
 
 ## Run locally
 
@@ -40,6 +41,7 @@ docker compose up --build
 - Documents: `http://localhost:8000/api/v1/claims/{claim_id}/documents`
 - Async workflow: `http://localhost:8000/api/v1/claims/{claim_id}/workflow/execute-async`
 - Task status: `http://localhost:8000/api/v1/tasks/{task_id}`
+- Fraud analysis: `http://localhost:8000/api/v1/claims/{claim_id}/fraud/analyze`
 
 ## Initial structure
 

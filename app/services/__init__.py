@@ -1,6 +1,7 @@
 from app.services.document_service import ensure_document_storage
 from app.services.document_service import list_claim_documents
 from app.services.document_service import store_claim_document
+from app.services.fraud_service import analyze_claim_for_fraud
 from app.services.policy_service import create_policy
 from app.services.policy_service import get_policy_by_number
 from app.services.policy_service import list_policies
@@ -10,6 +11,7 @@ from app.services.workflow_service import execute_workflow_step
 from app.services.workflow_service import get_allowed_transitions
 
 __all__ = [
+    "analyze_claim_for_fraud",
     "create_policy",
     "execute_workflow_step",
     "ensure_document_storage",
