@@ -1,3 +1,6 @@
+from app.services.adjuster_service import assign_best_adjuster
+from app.services.adjuster_service import create_adjuster
+from app.services.adjuster_service import list_adjusters
 from app.services.document_service import ensure_document_storage
 from app.services.document_service import list_claim_documents
 from app.services.document_service import store_claim_document
@@ -11,13 +14,16 @@ from app.services.workflow_service import execute_workflow_step
 from app.services.workflow_service import get_allowed_transitions
 
 __all__ = [
+    "assign_best_adjuster",
     "analyze_claim_for_fraud",
+    "create_adjuster",
     "create_policy",
     "execute_workflow_step",
     "ensure_document_storage",
     "get_policy_by_number",
     "get_allowed_transitions",
     "list_claim_documents",
+    "list_adjusters",
     "list_policies",
     "store_claim_document",
     "validate_policy_coverage",

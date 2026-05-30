@@ -5,6 +5,8 @@ from uuid import UUID
 from app.db.session import SessionLocal
 from app.models.claim import ClaimStatus
 from app.models.document import DocumentType
+from app.services.adjuster_service import assign_best_adjuster
+from app.services.adjuster_service import determine_required_expertise
 from app.services.claim_service import get_claim_by_id
 from app.services.document_service import list_claim_documents
 from app.services.fraud_service import analyze_claim_for_fraud
@@ -126,6 +128,39 @@ def send_claim_notification_task(claim_id: str, message: str) -> dict:
         session.close()
 
 
+@celery_app.task(name="claims.assign_adjuster")
+def assign_adjuster_task(claim_id: str) -> dict:
+    session = SessionLocal()
+    try:
+        claim_uuid = UUID(claim_id)
+        claim = get_claim_by_id(session, claim_uuid)
+        if claim is None:
+            return {
+                "claim_id": claim_id,
+                "assigned": False,
+                "error": "Claim not found",
+            }
+
+        ranked = assign_best_adjuster(session, claim)
+        return {
+            "claim_id": claim_id,
+            "assigned": True,
+            "adjuster_id": str(ranked.adjuster.id),
+            "adjuster_name": ranked.adjuster.full_name,
+            "city_match": ranked.city_match,
+            "required_expertise": determine_required_expertise(float(claim.claim_amount)).value,
+            "assigned_expertise": ranked.adjuster.expertise.value,
+        }
+    except Exception as exc:
+        return {
+            "claim_id": claim_id,
+            "assigned": False,
+            "error": str(exc),
+        }
+    finally:
+        session.close()
+
+
 @celery_app.task(name="claims.execute_workflow_step")
 def execute_workflow_step_task(
     claim_id: str,
@@ -159,6 +194,10 @@ def execute_workflow_step_task(
         if updated_claim.status == ClaimStatus.FRAUD_ANALYSIS:
             run_claim_fraud_checks_task.delay(claim_id)
             follow_up_tasks.append("claims.run_fraud_checks")
+
+        if updated_claim.status == ClaimStatus.ADJUSTER_ASSIGNMENT:
+            assign_adjuster_task.delay(claim_id)
+            follow_up_tasks.append("claims.assign_adjuster")
 
         if updated_claim.status in {
             ClaimStatus.APPROVED,

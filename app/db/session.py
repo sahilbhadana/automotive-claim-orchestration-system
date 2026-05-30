@@ -26,11 +26,13 @@ def get_db_session() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
+    from app.models.adjuster import Adjuster
     from app.models.claim import Claim
     from app.models.document import ClaimDocument
     from app.models.policy import Policy
 
     # Importing the model registers its metadata before create_all runs.
+    Adjuster.__table__
     Claim.__table__
     ClaimDocument.__table__
     Policy.__table__

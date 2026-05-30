@@ -8,6 +8,7 @@ from enum import StrEnum
 from sqlalchemy import Date
 from sqlalchemy import DateTime
 from sqlalchemy import Enum
+from sqlalchemy import ForeignKey
 from sqlalchemy import Numeric
 from sqlalchemy import String
 from sqlalchemy import func
@@ -40,6 +41,11 @@ class Claim(Base):
     incident_city: Mapped[str] = mapped_column(String(100))
     claim_amount: Mapped[float] = mapped_column(Numeric(12, 2))
     description: Mapped[str] = mapped_column(String(1000))
+    adjuster_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("adjusters.id"),
+        nullable=True,
+        index=True,
+    )
     status: Mapped[ClaimStatus] = mapped_column(
         Enum(ClaimStatus, name="claim_status"),
         default=ClaimStatus.CLAIM_CREATED,
