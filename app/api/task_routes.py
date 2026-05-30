@@ -7,12 +7,14 @@ from fastapi import status
 
 from app.api.dependencies import DatabaseSession
 from app.schemas.fraud import FraudCheckRequest
+from app.schemas.task import RepairEstimateApprovalTaskRequest
 from app.schemas.task import AsyncWorkflowExecutionRequest
 from app.schemas.task import NotificationTaskRequest
 from app.schemas.task import TaskDispatchRead
 from app.schemas.task import TaskStatusRead
 from app.services.claim_service import get_claim_by_id
 from app.tasks.claim_tasks import assign_adjuster_task
+from app.tasks.claim_tasks import approve_repair_estimate_task
 from app.tasks.claim_tasks import execute_workflow_step_task
 from app.tasks.claim_tasks import run_claim_fraud_checks_task
 from app.tasks.claim_tasks import send_claim_notification_task
@@ -109,6 +111,23 @@ async def dispatch_adjuster_assignment_task(
         )
 
     task = assign_adjuster_task.delay(str(claim_id))
+    return TaskDispatchRead(task_id=task.id, task_name=task.task, status=task.status)
+
+
+@router.post(
+    "/repair-estimates/{estimate_id}/approve-async",
+    response_model=TaskDispatchRead,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def dispatch_repair_estimate_approval_task(
+    estimate_id: UUID,
+    payload: RepairEstimateApprovalTaskRequest,
+) -> TaskDispatchRead:
+    task = approve_repair_estimate_task.delay(
+        str(estimate_id),
+        payload.approved,
+        payload.approval_notes,
+    )
     return TaskDispatchRead(task_id=task.id, task_name=task.task, status=task.status)
 
 

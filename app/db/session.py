@@ -29,13 +29,17 @@ def init_db() -> None:
     from app.models.adjuster import Adjuster
     from app.models.claim import Claim
     from app.models.document import ClaimDocument
+    from app.models.garage import Garage
     from app.models.policy import Policy
+    from app.models.repair_estimate import RepairEstimate
 
     # Importing the model registers its metadata before create_all runs.
     Adjuster.__table__
     Claim.__table__
     ClaimDocument.__table__
+    Garage.__table__
     Policy.__table__
+    RepairEstimate.__table__
     Base.metadata.create_all(bind=engine)
 
 

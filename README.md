@@ -20,6 +20,7 @@ This repository currently includes:
 - celery-backed async workflow and claim processing tasks
 - fraud analysis rules engine with suspicious-claim detection
 - dynamic adjuster assignment with workload-aware allocation
+- garage repair estimation and quotation approval workflow
 
 ## Run locally
 
@@ -45,6 +46,8 @@ docker compose up --build
 - Fraud analysis: `http://localhost:8000/api/v1/claims/{claim_id}/fraud/analyze`
 - Adjusters: `http://localhost:8000/api/v1/adjusters`
 - Assign adjuster: `http://localhost:8000/api/v1/claims/{claim_id}/adjuster/assign`
+- Garages: `http://localhost:8000/api/v1/garages`
+- Repair estimates: `http://localhost:8000/api/v1/claims/{claim_id}/repair-estimates`
 
 ## Initial structure
 

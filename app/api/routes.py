@@ -4,6 +4,7 @@ from app.api.adjuster_routes import router as adjuster_router
 from app.api.claim_routes import router as claim_router
 from app.api.document_routes import router as document_router
 from app.api.fraud_routes import router as fraud_router
+from app.api.garage_routes import router as garage_router
 from app.api.policy_routes import router as policy_router
 from app.api.task_routes import router as task_router
 from app.api.verification_routes import router as verification_router
@@ -16,6 +17,7 @@ router.include_router(adjuster_router)
 router.include_router(claim_router)
 router.include_router(document_router)
 router.include_router(fraud_router)
+router.include_router(garage_router)
 router.include_router(policy_router)
 router.include_router(task_router)
 router.include_router(verification_router)

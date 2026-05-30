@@ -10,11 +10,14 @@ from app.services.adjuster_service import determine_required_expertise
 from app.services.claim_service import get_claim_by_id
 from app.services.document_service import list_claim_documents
 from app.services.fraud_service import analyze_claim_for_fraud
+from app.services.garage_service import approve_repair_estimate
+from app.services.garage_service import get_repair_estimate_by_id
 from app.services.policy_service import get_policy_by_number
 from app.services.workflow_service import build_workflow_transition_name
 from app.services.workflow_service import execute_workflow_step
 from app.workers.celery_app import celery_app
 from app.schemas.fraud import FraudCheckRequest
+from app.schemas.garage import RepairEstimateApprovalRequest
 
 
 @celery_app.task(name="claims.validate_images")
@@ -155,6 +158,47 @@ def assign_adjuster_task(claim_id: str) -> dict:
         return {
             "claim_id": claim_id,
             "assigned": False,
+            "error": str(exc),
+        }
+    finally:
+        session.close()
+
+
+@celery_app.task(name="claims.approve_repair_estimate")
+def approve_repair_estimate_task(
+    estimate_id: str,
+    approved: bool,
+    approval_notes: str | None = None,
+) -> dict:
+    session = SessionLocal()
+    try:
+        estimate_uuid = UUID(estimate_id)
+        estimate = get_repair_estimate_by_id(session, estimate_uuid)
+        if estimate is None:
+            return {
+                "estimate_id": estimate_id,
+                "updated": False,
+                "error": "Repair estimate not found",
+            }
+
+        updated_estimate = approve_repair_estimate(
+            session=session,
+            estimate=estimate,
+            payload=RepairEstimateApprovalRequest(
+                approved=approved,
+                approval_notes=approval_notes,
+            ),
+        )
+        return {
+            "estimate_id": estimate_id,
+            "updated": True,
+            "status": updated_estimate.status.value,
+            "claim_id": str(updated_estimate.claim_id),
+        }
+    except Exception as exc:
+        return {
+            "estimate_id": estimate_id,
+            "updated": False,
             "error": str(exc),
         }
     finally:
