@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.document import ClaimDocument
 from app.models.document import DocumentType
+from app.services.audit_service import record_audit_event
 
 ALLOWED_CONTENT_TYPES: dict[DocumentType, set[str]] = {
     DocumentType.ACCIDENT_PHOTO: {"image/jpeg", "image/png", "image/webp"},
@@ -86,6 +87,20 @@ def store_claim_document(
         size_bytes=len(file_bytes),
     )
     session.add(document)
+    session.flush()
+    record_audit_event(
+        session,
+        entity_type="document",
+        entity_id=str(document.id),
+        claim_id=claim_id,
+        action="CLAIM_DOCUMENT_UPLOADED",
+        details={
+            "document_type": document_type.value,
+            "original_filename": original_filename,
+            "content_type": content_type,
+            "size_bytes": len(file_bytes),
+        },
+    )
     session.commit()
     session.refresh(document)
     return document

@@ -1,6 +1,8 @@
 from app.services.adjuster_service import assign_best_adjuster
 from app.services.adjuster_service import create_adjuster
 from app.services.adjuster_service import list_adjusters
+from app.services.audit_service import list_claim_audit_events
+from app.services.audit_service import record_audit_event
 from app.services.document_service import ensure_document_storage
 from app.services.document_service import list_claim_documents
 from app.services.document_service import store_claim_document
@@ -30,11 +32,13 @@ __all__ = [
     "ensure_document_storage",
     "get_policy_by_number",
     "get_allowed_transitions",
+    "list_claim_audit_events",
     "list_claim_documents",
     "list_adjusters",
     "list_claim_repair_estimates",
     "list_garages",
     "list_policies",
+    "record_audit_event",
     "store_claim_document",
     "validate_policy_coverage",
     "verify_vehicle_and_driver",

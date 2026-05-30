@@ -9,6 +9,7 @@ from app.models.claim import Claim
 from app.models.garage import Garage
 from app.models.repair_estimate import RepairEstimate
 from app.models.repair_estimate import RepairEstimateStatus
+from app.services.audit_service import record_audit_event
 from app.schemas.garage import GarageCreate
 from app.schemas.garage import RepairEstimateApprovalRequest
 from app.schemas.garage import RepairEstimateCreate
@@ -21,6 +22,14 @@ class RepairEstimateWorkflowError(ValueError):
 def create_garage(session: Session, payload: GarageCreate) -> Garage:
     garage = Garage(**payload.model_dump())
     session.add(garage)
+    session.flush()
+    record_audit_event(
+        session,
+        entity_type="garage",
+        entity_id=str(garage.id),
+        action="GARAGE_CREATED",
+        details=payload.model_dump(),
+    )
     session.commit()
     session.refresh(garage)
     return garage
@@ -51,6 +60,19 @@ def create_repair_estimate(
         notes=payload.notes,
     )
     session.add(estimate)
+    session.flush()
+    record_audit_event(
+        session,
+        entity_type="repair_estimate",
+        entity_id=str(estimate.id),
+        claim_id=claim.id,
+        action="REPAIR_ESTIMATE_SUBMITTED",
+        details={
+            "garage_id": str(payload.garage_id),
+            "estimated_amount": payload.estimated_amount,
+            "notes": payload.notes,
+        },
+    )
     session.commit()
     session.refresh(estimate)
     return estimate
@@ -87,6 +109,17 @@ def approve_repair_estimate(
     )
     estimate.approval_notes = payload.approval_notes
     session.add(estimate)
+    record_audit_event(
+        session,
+        entity_type="repair_estimate",
+        entity_id=str(estimate.id),
+        claim_id=estimate.claim_id,
+        action="REPAIR_ESTIMATE_DECIDED",
+        details={
+            "status": estimate.status.value,
+            "approval_notes": payload.approval_notes,
+        },
+    )
     session.commit()
     session.refresh(estimate)
     return estimate

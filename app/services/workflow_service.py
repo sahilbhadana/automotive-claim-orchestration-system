@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.claim import Claim
 from app.models.claim import ClaimStatus
+from app.services.audit_service import record_audit_event
 from app.services.claim_service import update_claim_status
 
 DEFAULT_WORKFLOW_TRANSITIONS: dict[ClaimStatus, list[ClaimStatus]] = {
@@ -51,6 +52,20 @@ def execute_workflow_step(
     )
 
     updated_claim = update_claim_status(session, claim, resolved_target)
+    record_audit_event(
+        session,
+        entity_type="workflow",
+        entity_id=str(updated_claim.id),
+        claim_id=updated_claim.id,
+        action="WORKFLOW_TRANSITION_EXECUTED",
+        details={
+            "previous_status": previous_status.value,
+            "current_status": updated_claim.status.value,
+            "transition": build_workflow_transition_name(previous_status, updated_claim.status),
+        },
+    )
+    session.commit()
+    session.refresh(updated_claim)
     return previous_status, updated_claim
 
 

@@ -21,6 +21,7 @@ This repository currently includes:
 - fraud analysis rules engine with suspicious-claim detection
 - dynamic adjuster assignment with workload-aware allocation
 - garage repair estimation and quotation approval workflow
+- immutable audit logging and claim activity timeline
 
 ## Run locally
 
@@ -48,6 +49,7 @@ docker compose up --build
 - Assign adjuster: `http://localhost:8000/api/v1/claims/{claim_id}/adjuster/assign`
 - Garages: `http://localhost:8000/api/v1/garages`
 - Repair estimates: `http://localhost:8000/api/v1/claims/{claim_id}/repair-estimates`
+- Claim activity timeline: `http://localhost:8000/api/v1/claims/{claim_id}/activity`
 
 ## Initial structure
 

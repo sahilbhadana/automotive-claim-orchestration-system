@@ -27,6 +27,7 @@ def get_db_session() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     from app.models.adjuster import Adjuster
+    from app.models.audit import AuditLog
     from app.models.claim import Claim
     from app.models.document import ClaimDocument
     from app.models.garage import Garage
@@ -35,6 +36,7 @@ def init_db() -> None:
 
     # Importing the model registers its metadata before create_all runs.
     Adjuster.__table__
+    AuditLog.__table__
     Claim.__table__
     ClaimDocument.__table__
     Garage.__table__

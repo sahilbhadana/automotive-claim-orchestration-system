@@ -11,6 +11,7 @@ from app.models.adjuster import Adjuster
 from app.models.adjuster import AdjusterExpertise
 from app.models.claim import Claim
 from app.models.claim import ClaimStatus
+from app.services.audit_service import record_audit_event
 
 ACTIVE_WORKLOAD_STATUSES = {
     ClaimStatus.CLAIM_CREATED,
@@ -45,6 +46,20 @@ def create_adjuster(session: Session, full_name: str, city: str, expertise: Adju
         is_active=is_active,
     )
     session.add(adjuster)
+    session.flush()
+    record_audit_event(
+        session,
+        entity_type="adjuster",
+        entity_id=str(adjuster.id),
+        action="ADJUSTER_CREATED",
+        details={
+            "full_name": full_name,
+            "city": city,
+            "expertise": expertise.value,
+            "max_active_claims": max_active_claims,
+            "is_active": is_active,
+        },
+    )
     session.commit()
     session.refresh(adjuster)
     return adjuster
@@ -78,6 +93,23 @@ def assign_best_adjuster(session: Session, claim: Claim) -> RankedAdjuster:
 
     claim.adjuster_id = ranked.adjuster.id
     session.add(claim)
+    record_audit_event(
+        session,
+        entity_type="adjuster_assignment",
+        entity_id=str(ranked.adjuster.id),
+        claim_id=claim.id,
+        action="CLAIM_ADJUSTER_ASSIGNED",
+        details={
+            "adjuster_id": str(ranked.adjuster.id),
+            "adjuster_name": ranked.adjuster.full_name,
+            "adjuster_city": ranked.adjuster.city,
+            "city_match": ranked.city_match,
+            "workload_count": ranked.workload_count,
+            "max_active_claims": ranked.adjuster.max_active_claims,
+            "assigned_expertise": ranked.adjuster.expertise.value,
+            "required_expertise": required_expertise.value,
+        },
+    )
     session.commit()
     session.refresh(claim)
     return ranked
