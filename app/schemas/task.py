@@ -10,10 +10,6 @@ class TaskDispatchRead(BaseModel):
     status: str
 
 
-class NotificationTaskRequest(BaseModel):
-    message: str = Field(min_length=3, max_length=500)
-
-
 class RepairEstimateApprovalTaskRequest(BaseModel):
     approved: bool
     approval_notes: str | None = Field(default=None, max_length=500)

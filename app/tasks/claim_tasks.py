@@ -12,6 +12,7 @@ from app.services.document_service import list_claim_documents
 from app.services.fraud_service import analyze_claim_for_fraud
 from app.services.garage_service import approve_repair_estimate
 from app.services.garage_service import get_repair_estimate_by_id
+from app.services.notification_service import dispatch_claim_notification
 from app.services.policy_service import get_policy_by_number
 from app.services.workflow_service import build_workflow_transition_name
 from app.services.workflow_service import execute_workflow_step
@@ -107,7 +108,13 @@ def run_claim_fraud_checks_task(
 
 
 @celery_app.task(name="claims.send_notification")
-def send_claim_notification_task(claim_id: str, message: str) -> dict:
+def send_claim_notification_task(
+    claim_id: str,
+    event_name: str,
+    message: str | None = None,
+    previous_status: str | None = None,
+    adjuster_name: str | None = None,
+) -> dict:
     session = SessionLocal()
     try:
         claim_uuid = UUID(claim_id)
@@ -116,17 +123,19 @@ def send_claim_notification_task(claim_id: str, message: str) -> dict:
             return {
                 "claim_id": claim_id,
                 "delivered": False,
-                "channel": "email",
+                "event_name": event_name,
+                "deliveries": [],
                 "message": "Claim not found",
             }
 
-        return {
-            "claim_id": claim_id,
-            "delivered": True,
-            "channel": "email",
-            "message": message,
-            "claim_status": claim.status.value,
-        }
+        return dispatch_claim_notification(
+            session=session,
+            claim=claim,
+            event_name=event_name,
+            previous_status=previous_status,
+            adjuster_name=adjuster_name,
+            override_message=message,
+        )
     finally:
         session.close()
 
@@ -145,6 +154,13 @@ def assign_adjuster_task(claim_id: str) -> dict:
             }
 
         ranked = assign_best_adjuster(session, claim)
+        send_claim_notification_task.delay(
+            claim_id,
+            "adjuster_assigned",
+            None,
+            None,
+            ranked.adjuster.full_name,
+        )
         return {
             "claim_id": claim_id,
             "assigned": True,
@@ -248,8 +264,12 @@ def execute_workflow_step_task(
             ClaimStatus.REJECTED,
             ClaimStatus.PAYOUT,
         }:
-            notification_message = reason or f"Claim moved to {updated_claim.status.value}"
-            send_claim_notification_task.delay(claim_id, notification_message)
+            send_claim_notification_task.delay(
+                claim_id,
+                "workflow_transition",
+                reason,
+                previous_status.value,
+            )
             follow_up_tasks.append("claims.send_notification")
 
         return {

@@ -12,6 +12,7 @@ from app.services.garage_service import create_garage
 from app.services.garage_service import create_repair_estimate
 from app.services.garage_service import list_claim_repair_estimates
 from app.services.garage_service import list_garages
+from app.services.notification_service import dispatch_claim_notification
 from app.services.policy_service import create_policy
 from app.services.policy_service import get_policy_by_number
 from app.services.policy_service import list_policies
@@ -28,6 +29,7 @@ __all__ = [
     "create_garage",
     "create_policy",
     "create_repair_estimate",
+    "dispatch_claim_notification",
     "execute_workflow_step",
     "ensure_document_storage",
     "get_policy_by_number",

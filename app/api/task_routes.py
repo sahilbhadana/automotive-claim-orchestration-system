@@ -7,9 +7,9 @@ from fastapi import status
 
 from app.api.dependencies import DatabaseSession
 from app.schemas.fraud import FraudCheckRequest
+from app.schemas.notification import NotificationDispatchRequest
 from app.schemas.task import RepairEstimateApprovalTaskRequest
 from app.schemas.task import AsyncWorkflowExecutionRequest
-from app.schemas.task import NotificationTaskRequest
 from app.schemas.task import TaskDispatchRead
 from app.schemas.task import TaskStatusRead
 from app.services.claim_service import get_claim_by_id
@@ -138,7 +138,7 @@ async def dispatch_repair_estimate_approval_task(
 )
 async def dispatch_notification_task(
     claim_id: UUID,
-    payload: NotificationTaskRequest,
+    payload: NotificationDispatchRequest,
     session: DatabaseSession,
 ) -> TaskDispatchRead:
     claim = get_claim_by_id(session, claim_id)
@@ -148,7 +148,11 @@ async def dispatch_notification_task(
             detail="Claim not found",
         )
 
-    task = send_claim_notification_task.delay(str(claim_id), payload.message)
+    task = send_claim_notification_task.delay(
+        str(claim_id),
+        payload.event_name,
+        payload.message,
+    )
     return TaskDispatchRead(task_id=task.id, task_name=task.task, status=task.status)
 
 

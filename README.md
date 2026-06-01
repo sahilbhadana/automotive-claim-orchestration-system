@@ -22,6 +22,7 @@ This repository currently includes:
 - dynamic adjuster assignment with workload-aware allocation
 - garage repair estimation and quotation approval workflow
 - immutable audit logging and claim activity timeline
+- event-driven notification engine with email, SMS, and templates
 
 ## Run locally
 
@@ -50,6 +51,7 @@ docker compose up --build
 - Garages: `http://localhost:8000/api/v1/garages`
 - Repair estimates: `http://localhost:8000/api/v1/claims/{claim_id}/repair-estimates`
 - Claim activity timeline: `http://localhost:8000/api/v1/claims/{claim_id}/activity`
+- Notification dispatch: `http://localhost:8000/api/v1/claims/{claim_id}/notifications/dispatch`
 
 ## Initial structure
 
