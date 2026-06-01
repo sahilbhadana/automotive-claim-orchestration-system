@@ -4,7 +4,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.schemas.claim import ClaimCreate
 from app.schemas.claim import ClaimRead
 from app.schemas.claim import ClaimStatusUpdate
@@ -20,13 +23,17 @@ router = APIRouter(prefix="/claims", tags=["claims"])
 async def create_claim_endpoint(
     payload: ClaimCreate,
     session: DatabaseSession,
+    current_user: CurrentUser,
 ) -> ClaimRead:
     claim = create_claim(session, payload)
     return ClaimRead.model_validate(claim)
 
 
 @router.get("", response_model=list[ClaimRead])
-async def list_claims_endpoint(session: DatabaseSession) -> list[ClaimRead]:
+async def list_claims_endpoint(
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> list[ClaimRead]:
     claims = list_claims(session)
     return [ClaimRead.model_validate(claim) for claim in claims]
 
@@ -35,6 +42,7 @@ async def list_claims_endpoint(session: DatabaseSession) -> list[ClaimRead]:
 async def get_claim_endpoint(
     claim_id: UUID,
     session: DatabaseSession,
+    current_user: CurrentUser,
 ) -> ClaimRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -50,6 +58,11 @@ async def update_claim_status_endpoint(
     claim_id: UUID,
     payload: ClaimStatusUpdate,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> ClaimRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:

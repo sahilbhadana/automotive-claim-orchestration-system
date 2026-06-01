@@ -5,6 +5,7 @@ from app.models.document import ClaimDocument
 from app.models.garage import Garage
 from app.models.policy import Policy
 from app.models.repair_estimate import RepairEstimate
+from app.models.user import User
 
 __all__ = [
     "Adjuster",
@@ -14,5 +15,6 @@ __all__ = [
     "Garage",
     "Policy",
     "RepairEstimate",
+    "User",
 ]
 

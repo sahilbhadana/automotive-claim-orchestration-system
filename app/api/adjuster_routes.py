@@ -4,7 +4,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.schemas.adjuster import AdjusterAssignmentRead
 from app.schemas.adjuster import AdjusterCreate
 from app.schemas.adjuster import AdjusterRead
@@ -27,6 +30,7 @@ router = APIRouter(tags=["adjusters"])
 async def create_adjuster_endpoint(
     payload: AdjusterCreate,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(UserRole.ADMIN),
 ) -> AdjusterRead:
     adjuster = create_adjuster(
         session=session,
@@ -40,7 +44,14 @@ async def create_adjuster_endpoint(
 
 
 @router.get("/adjusters", response_model=list[AdjusterRead])
-async def list_adjusters_endpoint(session: DatabaseSession) -> list[AdjusterRead]:
+async def list_adjusters_endpoint(
+    session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
+) -> list[AdjusterRead]:
     adjusters = list_adjusters(session)
     return [AdjusterRead.model_validate(adjuster) for adjuster in adjusters]
 
@@ -52,6 +63,10 @@ async def list_adjusters_endpoint(session: DatabaseSession) -> list[AdjusterRead
 async def assign_adjuster_endpoint(
     claim_id: UUID,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> AdjusterAssignmentRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:

@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     max_document_size_bytes: int = 10 * 1024 * 1024
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/1"
+    jwt_secret_key: str = "change-this-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 120
     database_url: str = (
         "postgresql+psycopg://claims_user:claims_password@localhost:5432/claims_db"
     )

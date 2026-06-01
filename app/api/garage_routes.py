@@ -4,7 +4,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.schemas.garage import GarageCreate
 from app.schemas.garage import GarageRead
 from app.schemas.garage import RepairEstimateApprovalRequest
@@ -26,13 +29,24 @@ router = APIRouter(tags=["garages"])
 async def create_garage_endpoint(
     payload: GarageCreate,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> GarageRead:
     garage = create_garage(session, payload)
     return GarageRead.model_validate(garage)
 
 
 @router.get("/garages", response_model=list[GarageRead])
-async def list_garages_endpoint(session: DatabaseSession) -> list[GarageRead]:
+async def list_garages_endpoint(
+    session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
+) -> list[GarageRead]:
     garages = list_garages(session)
     return [GarageRead.model_validate(garage) for garage in garages]
 
@@ -46,6 +60,11 @@ async def create_repair_estimate_endpoint(
     claim_id: UUID,
     payload: RepairEstimateCreate,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> RepairEstimateRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -69,6 +88,11 @@ async def create_repair_estimate_endpoint(
 async def list_repair_estimates_endpoint(
     claim_id: UUID,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> list[RepairEstimateRead]:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -89,6 +113,10 @@ async def approve_repair_estimate_endpoint(
     estimate_id: UUID,
     payload: RepairEstimateApprovalRequest,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> RepairEstimateRead:
     estimate = get_repair_estimate_by_id(session, estimate_id)
     if estimate is None:

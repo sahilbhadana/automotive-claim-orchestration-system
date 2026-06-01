@@ -33,6 +33,7 @@ def init_db() -> None:
     from app.models.garage import Garage
     from app.models.policy import Policy
     from app.models.repair_estimate import RepairEstimate
+    from app.models.user import User
 
     # Importing the model registers its metadata before create_all runs.
     Adjuster.__table__
@@ -42,6 +43,7 @@ def init_db() -> None:
     Garage.__table__
     Policy.__table__
     RepairEstimate.__table__
+    User.__table__
     Base.metadata.create_all(bind=engine)
 
 

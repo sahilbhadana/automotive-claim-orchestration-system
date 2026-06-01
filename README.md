@@ -23,6 +23,7 @@ This repository currently includes:
 - garage repair estimation and quotation approval workflow
 - immutable audit logging and claim activity timeline
 - event-driven notification engine with email, SMS, and templates
+- jwt authentication with role-based workflow access control
 
 ## Run locally
 
@@ -52,6 +53,8 @@ docker compose up --build
 - Repair estimates: `http://localhost:8000/api/v1/claims/{claim_id}/repair-estimates`
 - Claim activity timeline: `http://localhost:8000/api/v1/claims/{claim_id}/activity`
 - Notification dispatch: `http://localhost:8000/api/v1/claims/{claim_id}/notifications/dispatch`
+- Auth register: `http://localhost:8000/api/v1/auth/register`
+- Auth login: `http://localhost:8000/api/v1/auth/login`
 
 ## Initial structure
 

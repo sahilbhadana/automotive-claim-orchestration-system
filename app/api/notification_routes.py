@@ -4,7 +4,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.schemas.notification import NotificationDeliveryRead
 from app.schemas.notification import NotificationDispatchRequest
 from app.services.claim_service import get_claim_by_id
@@ -18,6 +21,10 @@ async def dispatch_claim_notification_endpoint(
     claim_id: UUID,
     payload: NotificationDispatchRequest,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> NotificationDeliveryRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:

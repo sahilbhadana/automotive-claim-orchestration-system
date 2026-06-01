@@ -7,7 +7,10 @@ from fastapi import HTTPException
 from fastapi import UploadFile
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.models.document import DocumentType
 from app.schemas.document import ClaimDocumentRead
 from app.services.claim_service import get_claim_by_id
@@ -24,6 +27,12 @@ async def upload_claim_document(
     session: DatabaseSession,
     document_type: DocumentType = Form(...),
     file: UploadFile = File(...),
+    current_user: CurrentUser = require_roles(
+        UserRole.CUSTOMER,
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> ClaimDocumentRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -58,6 +67,12 @@ async def upload_claim_document(
 async def list_claim_documents_endpoint(
     claim_id: UUID,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.CUSTOMER,
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> list[ClaimDocumentRead]:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:

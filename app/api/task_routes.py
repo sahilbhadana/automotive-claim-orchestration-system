@@ -5,7 +5,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.schemas.fraud import FraudCheckRequest
 from app.schemas.notification import NotificationDispatchRequest
 from app.schemas.task import RepairEstimateApprovalTaskRequest
@@ -33,6 +36,11 @@ async def dispatch_async_workflow_execution(
     claim_id: UUID,
     payload: AsyncWorkflowExecutionRequest,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> TaskDispatchRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -57,6 +65,11 @@ async def dispatch_async_workflow_execution(
 async def dispatch_image_validation_task(
     claim_id: UUID,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> TaskDispatchRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -78,6 +91,10 @@ async def dispatch_fraud_check_task(
     claim_id: UUID,
     payload: FraudCheckRequest,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> TaskDispatchRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -102,6 +119,10 @@ async def dispatch_fraud_check_task(
 async def dispatch_adjuster_assignment_task(
     claim_id: UUID,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> TaskDispatchRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -122,6 +143,10 @@ async def dispatch_adjuster_assignment_task(
 async def dispatch_repair_estimate_approval_task(
     estimate_id: UUID,
     payload: RepairEstimateApprovalTaskRequest,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> TaskDispatchRead:
     task = approve_repair_estimate_task.delay(
         str(estimate_id),
@@ -140,6 +165,10 @@ async def dispatch_notification_task(
     claim_id: UUID,
     payload: NotificationDispatchRequest,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> TaskDispatchRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -157,7 +186,14 @@ async def dispatch_notification_task(
 
 
 @router.get("/tasks/{task_id}", response_model=TaskStatusRead)
-async def get_background_task_status(task_id: str) -> TaskStatusRead:
+async def get_background_task_status(
+    task_id: str,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
+) -> TaskStatusRead:
     result = AsyncResult(task_id, app=celery_app)
     payload = result.result if isinstance(result.result, dict) else None
     return TaskStatusRead(

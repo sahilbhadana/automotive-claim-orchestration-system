@@ -2,7 +2,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.schemas.policy import PolicyCreate
 from app.schemas.policy import PolicyRead
 from app.schemas.policy import PolicyValidationRequest
@@ -19,6 +22,10 @@ router = APIRouter(prefix="/policies", tags=["policies"])
 async def create_policy_endpoint(
     payload: PolicyCreate,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> PolicyRead:
     existing_policy = get_policy_by_number(session, payload.policy_number)
     if existing_policy is not None:
@@ -32,7 +39,14 @@ async def create_policy_endpoint(
 
 
 @router.get("", response_model=list[PolicyRead])
-async def list_policies_endpoint(session: DatabaseSession) -> list[PolicyRead]:
+async def list_policies_endpoint(
+    session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
+) -> list[PolicyRead]:
     policies = list_policies(session)
     return [PolicyRead.model_validate(policy) for policy in policies]
 
@@ -41,6 +55,11 @@ async def list_policies_endpoint(session: DatabaseSession) -> list[PolicyRead]:
 async def get_policy_endpoint(
     policy_number: str,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> PolicyRead:
     policy = get_policy_by_number(session, policy_number)
     if policy is None:
@@ -55,6 +74,11 @@ async def get_policy_endpoint(
 async def validate_policy_endpoint(
     payload: PolicyValidationRequest,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> PolicyValidationResult:
     policy = get_policy_by_number(session, payload.policy_number)
     return validate_policy_coverage(policy, payload)

@@ -4,7 +4,10 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
+from app.api.dependencies import require_roles
+from app.models.user import UserRole
 from app.schemas.workflow import WorkflowExecutionRead
 from app.schemas.workflow import WorkflowStateRead
 from app.schemas.workflow import WorkflowStepExecutionRequest
@@ -23,6 +26,11 @@ router = APIRouter(prefix="/claims/{claim_id}/workflow", tags=["workflow"])
 async def get_claim_workflow_state(
     claim_id: UUID,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> WorkflowStateRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -44,6 +52,11 @@ async def execute_claim_workflow_step(
     claim_id: UUID,
     payload: WorkflowStepExecutionRequest,
     session: DatabaseSession,
+    current_user: CurrentUser = require_roles(
+        UserRole.ADJUSTER,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+    ),
 ) -> WorkflowExecutionRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:

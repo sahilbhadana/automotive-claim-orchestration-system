@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.adjuster_routes import router as adjuster_router
 from app.api.audit_routes import router as audit_router
+from app.api.auth_routes import router as auth_router
 from app.api.claim_routes import router as claim_router
 from app.api.document_routes import router as document_router
 from app.api.fraud_routes import router as fraud_router
@@ -17,6 +18,7 @@ from app.db.session import check_database_connection
 router = APIRouter()
 router.include_router(adjuster_router)
 router.include_router(audit_router)
+router.include_router(auth_router)
 router.include_router(claim_router)
 router.include_router(document_router)
 router.include_router(fraud_router)
