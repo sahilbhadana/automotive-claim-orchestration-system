@@ -1,62 +1,105 @@
-# Automotive Insurance Claim Workflow Orchestration System
+# Automotive Claim Orchestration System
 
-Production-style distributed backend system for end-to-end automotive insurance claim processing using event-driven workflows, async processing, fraud detection, document management, and operational observability.
+Automotive Claim Orchestration System is a production-style backend platform for end-to-end insurance claim processing. It models the claim lifecycle as a workflow, coordinates validation and fraud analysis, manages evidence and repair estimates, assigns adjusters, records audit history, and dispatches asynchronous background work through Celery.
 
-## Day 1 Scope
+## What it does
 
-This repository currently includes:
+- manages automotive insurance claims from intake through payout
+- enforces workflow state transitions across the claim lifecycle
+- validates policies, vehicles, driver identity, and supporting documents
+- runs fraud analysis rules for duplicate claims, repeated incidents, high-risk garages, and suspicious repair costs
+- assigns adjusters dynamically using geography, expertise, and workload
+- supports garage quotation submission and repair estimate approval decisions
+- stores immutable audit logs and exposes a claim activity timeline
+- dispatches email and SMS-style notifications from workflow events
+- protects sensitive operations with JWT authentication and role-based authorization
 
-- FastAPI application bootstrap
-- environment-driven configuration
-- PostgreSQL development container
-- Docker Compose setup
-- health and readiness endpoints
-- claim domain model with lifecycle status persistence
-- claim creation, retrieval, listing, and status update APIs
-- policy lookup and coverage eligibility validation APIs
-- vehicle registration and driver verification APIs
-- workflow state inspection and step execution APIs
-- claim document upload and evidence metadata APIs
-- celery-backed async workflow and claim processing tasks
-- fraud analysis rules engine with suspicious-claim detection
-- dynamic adjuster assignment with workload-aware allocation
-- garage repair estimation and quotation approval workflow
-- immutable audit logging and claim activity timeline
-- event-driven notification engine with email, SMS, and templates
-- jwt authentication with role-based workflow access control
+## Core capabilities
 
-## Run locally
+- Claim management: create, fetch, list, and update claims with UUID identifiers and persisted lifecycle state
+- Workflow orchestration: inspect workflow state, execute transitions, and trigger downstream async jobs
+- Policy validation: check coverage eligibility, insured vehicle match, effective dates, and policy status
+- Verification engine: validate vehicle registration, driving license format, and ownership consistency
+- Document service: upload accident photos, FIR records, and RC documents with type and size validation
+- Fraud engine: apply suspicious-claim rules and produce structured fraud analysis results
+- Adjuster assignment: allocate claims using city match, expertise level, and pending workload
+- Repair estimation: manage garages, claim-linked estimates, and approval or rejection of quotations
+- Audit logging: persist append-only activity records for claim actions and workflow events
+- Notification engine: send templated lifecycle communications through email and SMS abstractions
+- Background processing: execute fraud checks, image validation, workflow actions, and notifications through Celery
+- Access control: issue JWT access tokens and enforce role-based route protection for `customer`, `adjuster`, `supervisor`, and `admin`
+
+## Architecture
+
+```text
+FastAPI API Layer
+  -> Workflow Orchestration
+  -> Claim / Policy / Verification / Fraud / Garage / Adjuster Services
+  -> Audit Logging + Notification Engine
+  -> Celery Background Tasks
+
+PostgreSQL
+Redis
+Local Document Storage
+Docker Compose Runtime
+```
+
+## Technology stack
+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Redis
+- Celery
+- Docker Compose
+- JWT authentication
+
+## Getting started
 
 1. Copy `.env.example` to `.env`
-2. Start the stack:
+2. Start the application stack:
 
 ```bash
 docker compose up --build
 ```
 
-3. Open:
+3. Open the API documentation:
 
-- API docs: `http://localhost:8000/docs`
+- Swagger UI: `http://localhost:8000/docs`
 - Health: `http://localhost:8000/api/v1/health`
 - Readiness: `http://localhost:8000/api/v1/ready`
-- Claims: `http://localhost:8000/api/v1/claims`
-- Policies: `http://localhost:8000/api/v1/policies`
-- Verifications: `http://localhost:8000/api/v1/verifications/vehicle-driver`
-- Workflow: `http://localhost:8000/api/v1/claims/{claim_id}/workflow`
-- Documents: `http://localhost:8000/api/v1/claims/{claim_id}/documents`
-- Async workflow: `http://localhost:8000/api/v1/claims/{claim_id}/workflow/execute-async`
-- Task status: `http://localhost:8000/api/v1/tasks/{task_id}`
-- Fraud analysis: `http://localhost:8000/api/v1/claims/{claim_id}/fraud/analyze`
-- Adjusters: `http://localhost:8000/api/v1/adjusters`
-- Assign adjuster: `http://localhost:8000/api/v1/claims/{claim_id}/adjuster/assign`
-- Garages: `http://localhost:8000/api/v1/garages`
-- Repair estimates: `http://localhost:8000/api/v1/claims/{claim_id}/repair-estimates`
-- Claim activity timeline: `http://localhost:8000/api/v1/claims/{claim_id}/activity`
-- Notification dispatch: `http://localhost:8000/api/v1/claims/{claim_id}/notifications/dispatch`
-- Auth register: `http://localhost:8000/api/v1/auth/register`
-- Auth login: `http://localhost:8000/api/v1/auth/login`
 
-## Initial structure
+## Authentication
+
+Register a user and obtain a JWT token before using protected routes.
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+
+Role model:
+
+- `customer`: claim submission and evidence-oriented access
+- `adjuster`: operational claim processing access
+- `supervisor`: workflow control, fraud review, notifications, and approvals
+- `admin`: full administrative access
+
+## Key API areas
+
+- Claims: `/api/v1/claims`
+- Workflow: `/api/v1/claims/{claim_id}/workflow`
+- Documents: `/api/v1/claims/{claim_id}/documents`
+- Policies: `/api/v1/policies`
+- Verification: `/api/v1/verifications/vehicle-driver`
+- Fraud analysis: `/api/v1/claims/{claim_id}/fraud/analyze`
+- Adjusters: `/api/v1/adjusters`
+- Garages: `/api/v1/garages`
+- Repair estimates: `/api/v1/claims/{claim_id}/repair-estimates`
+- Audit timeline: `/api/v1/claims/{claim_id}/activity`
+- Notifications: `/api/v1/claims/{claim_id}/notifications/dispatch`
+- Async tasks: `/api/v1/tasks/{task_id}`
+
+## Project structure
 
 ```text
 app/
@@ -66,7 +109,13 @@ app/
   models/
   schemas/
   services/
+  tasks/
+  workers/
   main.py
 ```
 
-This foundation is intentionally small so later days can add workflow orchestration, event publishing, fraud checks, document handling, and payout processing without reshaping the repo.
+## Notes
+
+- The system currently uses local document storage and can be extended to object storage later.
+- Background tasks run through the Celery worker defined in `docker-compose.yml`.
+- Audit events are written from core workflow mutations so claim history can be reconstructed from the activity timeline.
