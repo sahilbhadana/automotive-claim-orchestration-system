@@ -16,12 +16,21 @@ from app.services.notification_service import dispatch_claim_notification
 from app.services.policy_service import get_policy_by_number
 from app.services.workflow_service import build_workflow_transition_name
 from app.services.workflow_service import execute_workflow_step
+from app.workers.base_task import ResilientTask
 from app.workers.celery_app import celery_app
 from app.schemas.fraud import FraudCheckRequest
 from app.schemas.garage import RepairEstimateApprovalRequest
 
 
-@celery_app.task(name="claims.validate_images")
+@celery_app.task(
+    name="claims.validate_images",
+    base=ResilientTask,
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+    retry_backoff_max=120,
+    retry_jitter=True,
+)
 def validate_claim_images_task(claim_id: str) -> dict:
     session = SessionLocal()
     try:
@@ -57,7 +66,15 @@ def validate_claim_images_task(claim_id: str) -> dict:
         session.close()
 
 
-@celery_app.task(name="claims.run_fraud_checks")
+@celery_app.task(
+    name="claims.run_fraud_checks",
+    base=ResilientTask,
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+    retry_backoff_max=120,
+    retry_jitter=True,
+)
 def run_claim_fraud_checks_task(
     claim_id: str,
     garage_name: str | None = None,
@@ -107,7 +124,15 @@ def run_claim_fraud_checks_task(
         session.close()
 
 
-@celery_app.task(name="claims.send_notification")
+@celery_app.task(
+    name="claims.send_notification",
+    base=ResilientTask,
+    autoretry_for=(Exception,),
+    max_retries=5,
+    retry_backoff=True,
+    retry_backoff_max=300,
+    retry_jitter=True,
+)
 def send_claim_notification_task(
     claim_id: str,
     event_name: str,
@@ -140,7 +165,15 @@ def send_claim_notification_task(
         session.close()
 
 
-@celery_app.task(name="claims.assign_adjuster")
+@celery_app.task(
+    name="claims.assign_adjuster",
+    base=ResilientTask,
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+    retry_backoff_max=120,
+    retry_jitter=True,
+)
 def assign_adjuster_task(claim_id: str) -> dict:
     session = SessionLocal()
     try:
@@ -180,7 +213,15 @@ def assign_adjuster_task(claim_id: str) -> dict:
         session.close()
 
 
-@celery_app.task(name="claims.approve_repair_estimate")
+@celery_app.task(
+    name="claims.approve_repair_estimate",
+    base=ResilientTask,
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+    retry_backoff_max=120,
+    retry_jitter=True,
+)
 def approve_repair_estimate_task(
     estimate_id: str,
     approved: bool,
@@ -221,7 +262,15 @@ def approve_repair_estimate_task(
         session.close()
 
 
-@celery_app.task(name="claims.execute_workflow_step")
+@celery_app.task(
+    name="claims.execute_workflow_step",
+    base=ResilientTask,
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+    retry_backoff_max=120,
+    retry_jitter=True,
+)
 def execute_workflow_step_task(
     claim_id: str,
     target_status: str | None = None,
