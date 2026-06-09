@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://claims_user:claims_password@localhost:5432/claims_db"
     )
+    amqp_url: str | None = None
+    rate_limit_default: int = 200
+    rate_limit_auth: int = 20
+    rate_limit_window_seconds: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",
