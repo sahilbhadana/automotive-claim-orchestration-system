@@ -1,0 +1,341 @@
+{
+  "info": {
+    "name": "Insurance Claim Workflow API",
+    "description": "Production-grade automotive insurance claim orchestration system. Covers the full claim lifecycle: submission, fraud detection, adjuster assignment, repair estimation, and payout settlement.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "claim_id", "value": "", "type": "string" },
+    { "key": "policy_id", "value": "", "type": "string" },
+    { "key": "settlement_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"adjuster@example.com\",\n  \"full_name\": \"Rahul Verma\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"adjuster\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('token', res.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "adjuster@example.com" },
+                { "key": "password", "value": "SecurePass123!" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claims",
+      "item": [
+        {
+          "name": "Create Claim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) { pm.collectionVariables.set('claim_id', res.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/claims",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policy_number\": \"POL-2026-001\",\n  \"vehicle_number\": \"MH01AB1234\",\n  \"incident_date\": \"2026-06-01\",\n  \"incident_city\": \"Mumbai\",\n  \"claim_amount\": 85000.00,\n  \"description\": \"Rear-end collision at Andheri signal\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Claims",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/claims",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Claim",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/claims/{{claim_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workflow",
+      "item": [
+        {
+          "name": "Get Workflow State",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/claims/{{claim_id}}/workflow",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Advance Workflow",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/claims/{{claim_id}}/workflow/execute",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_status\": \"DOCUMENT_VERIFICATION\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fraud Analysis",
+      "item": [
+        {
+          "name": "Analyze Claim Fraud",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/claims/{{claim_id}}/fraud/analyze",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"garage_name\": \"Reliable Auto Works\",\n  \"repair_estimate_amount\": 72000.00\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settlements & Payouts",
+      "item": [
+        {
+          "name": "Initiate Payout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) { pm.collectionVariables.set('settlement_id', res.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/claims/{{claim_id}}/settlements",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payout_amount\": 80000.00,\n  \"payment_method\": \"NEFT\",\n  \"beneficiary_name\": \"Rohit Sharma\",\n  \"beneficiary_account\": \"9876543210\",\n  \"bank_ifsc\": \"SBIN0001234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Claim Settlements",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/claims/{{claim_id}}/settlements",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Settlement",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/settlements/{{settlement_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Retry Failed Settlement",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/settlements/{{settlement_id}}/retry",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Reverse Settlement",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/settlements/{{settlement_id}}/reverse?reason=Customer%20dispute",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dead-Letter Queue",
+      "item": [
+        {
+          "name": "Get DLQ",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dlq",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get DLQ Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dlq/stats",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get All Failed Tasks",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/dlq/all?status=DEAD",
+              "query": [{ "key": "status", "value": "DEAD" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Requeue Dead Task",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/dlq/:task_id/retry",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Observability",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "Readiness Probe",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/ready"
+          }
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/metrics"
+          }
+        },
+        {
+          "name": "Metrics Summary (JSON)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/metrics/summary",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Policies",
+      "item": [
+        {
+          "name": "Create Policy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) { pm.collectionVariables.set('policy_id', res.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/policies",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policy_number\": \"POL-2026-001\",\n  \"insured_name\": \"Rohit Sharma\",\n  \"vehicle_number\": \"MH01AB1234\",\n  \"coverage_type\": \"COMPREHENSIVE\",\n  \"premium_amount\": 18000.00,\n  \"sum_insured\": 500000.00,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-12-31\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Policies",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/policies",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    }
+  ]
+}
