@@ -30,9 +30,11 @@ def init_db() -> None:
     from app.models.audit import AuditLog
     from app.models.claim import Claim
     from app.models.document import ClaimDocument
+    from app.models.failed_task import FailedTask
     from app.models.garage import Garage
     from app.models.policy import Policy
     from app.models.repair_estimate import RepairEstimate
+    from app.models.settlement import Settlement
     from app.models.user import User
 
     # Importing the model registers its metadata before create_all runs.
@@ -40,9 +42,11 @@ def init_db() -> None:
     AuditLog.__table__
     Claim.__table__
     ClaimDocument.__table__
+    FailedTask.__table__
     Garage.__table__
     Policy.__table__
     RepairEstimate.__table__
+    Settlement.__table__
     User.__table__
     Base.metadata.create_all(bind=engine)
 
