@@ -2,8 +2,6 @@
 
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
-from app.api.dependencies import require_roles
-from app.models.user import UserRole
 from app.schemas.verification import VerificationRequest
 from app.schemas.verification import VerificationResult
 from app.services.policy_service import get_policy_by_number

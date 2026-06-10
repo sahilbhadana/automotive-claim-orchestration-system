@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.models.failed_task import FailedTaskStatus
-from app.models.user import UserRole
+from app.models.user import UserRole  # noqa: F401 - used in role checks
 from app.schemas.retry import FailedTaskRead
 from app.schemas.retry import RetryQueueStats
 from app.services.retry_service import dismiss_failed_task
@@ -32,8 +32,9 @@ def get_dead_letter_queue(
 @router.get("/all", response_model=list[FailedTaskRead])
 def get_all_failed_tasks(
     session: DatabaseSession,
+    *,
     status: FailedTaskStatus | None = None,
-current_user: CurrentUser,
+    current_user: CurrentUser,
 ) -> list[FailedTaskRead]:
     if current_user.role not in (UserRole.ADMIN, UserRole.SUPERVISOR):
         raise HTTPException(status_code=403, detail="Insufficient permissions")

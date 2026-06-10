@@ -9,8 +9,6 @@ from fastapi import status
 
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
-from app.api.dependencies import require_roles
-from app.models.user import UserRole
 from app.models.document import DocumentType
 from app.schemas.document import ClaimDocumentRead
 from app.services.claim_service import get_claim_by_id
@@ -25,9 +23,10 @@ router = APIRouter(prefix="/claims/{claim_id}/documents", tags=["documents"])
 async def upload_claim_document(
     claim_id: UUID,
     session: DatabaseSession,
+    *,
     document_type: DocumentType = Form(...),
     file: UploadFile = File(...),
-    current_user: CurrentUser
+    current_user: CurrentUser,
 ) -> ClaimDocumentRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:

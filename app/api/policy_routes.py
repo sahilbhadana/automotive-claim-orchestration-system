@@ -4,8 +4,6 @@ from fastapi import status
 
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
-from app.api.dependencies import require_roles
-from app.models.user import UserRole
 from app.schemas.policy import PolicyCreate
 from app.schemas.policy import PolicyRead
 from app.schemas.policy import PolicyValidationRequest

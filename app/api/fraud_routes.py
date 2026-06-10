@@ -6,8 +6,6 @@ from fastapi import status
 
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
-from app.api.dependencies import require_roles
-from app.models.user import UserRole
 from app.schemas.fraud import FraudAnalysisRead
 from app.schemas.fraud import FraudCheckRequest
 from app.services.claim_service import get_claim_by_id
