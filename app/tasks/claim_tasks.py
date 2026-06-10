@@ -37,7 +37,11 @@ def validate_claim_images_task(claim_id: str) -> dict:
         claim_uuid = UUID(claim_id)
         claim = get_claim_by_id(session, claim_uuid)
         if claim is None:
-            return {"claim_id": claim_id, "valid": False, "reasons": ["Claim not found"]}
+            return {
+                "claim_id": claim_id,
+                "valid": False,
+                "reasons": ["Claim not found"],
+            }
 
         documents = list_claim_documents(session, claim_uuid)
         accident_photos = [
@@ -106,7 +110,9 @@ def run_claim_fraud_checks_task(
         documents = list_claim_documents(session, claim_uuid)
         policy = get_policy_by_number(session, claim.policy_number)
 
-        if not any(document.document_type == DocumentType.FIR for document in documents):
+        if not any(
+            document.document_type == DocumentType.FIR for document in documents
+        ):
             analysis["triggered_rules"].append("missing_fir_document")
             analysis["risk_score"] += 2
 
@@ -200,7 +206,9 @@ def assign_adjuster_task(claim_id: str) -> dict:
             "adjuster_id": str(ranked.adjuster.id),
             "adjuster_name": ranked.adjuster.full_name,
             "city_match": ranked.city_match,
-            "required_expertise": determine_required_expertise(float(claim.claim_amount)).value,
+            "required_expertise": determine_required_expertise(
+                float(claim.claim_amount)
+            ).value,
             "assigned_expertise": ranked.adjuster.expertise.value,
         }
     except Exception as exc:
@@ -287,7 +295,9 @@ def execute_workflow_step_task(
                 "error": "Claim not found",
             }
 
-        resolved_target = ClaimStatus(target_status) if target_status is not None else None
+        resolved_target = (
+            ClaimStatus(target_status) if target_status is not None else None
+        )
         previous_status, updated_claim = execute_workflow_step(
             session=session,
             claim=claim,
@@ -326,7 +336,9 @@ def execute_workflow_step_task(
             "executed": True,
             "previous_status": previous_status.value,
             "current_status": updated_claim.status.value,
-            "transition": build_workflow_transition_name(previous_status, updated_claim.status),
+            "transition": build_workflow_transition_name(
+                previous_status, updated_claim.status
+            ),
             "follow_up_tasks": follow_up_tasks,
         }
     finally:

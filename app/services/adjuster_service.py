@@ -37,7 +37,14 @@ class RankedAdjuster:
     workload_ratio: float
 
 
-def create_adjuster(session: Session, full_name: str, city: str, expertise: AdjusterExpertise, max_active_claims: int, is_active: bool) -> Adjuster:
+def create_adjuster(
+    session: Session,
+    full_name: str,
+    city: str,
+    expertise: AdjusterExpertise,
+    max_active_claims: int,
+    is_active: bool,
+) -> Adjuster:
     adjuster = Adjuster(
         full_name=full_name,
         city=city,
@@ -79,7 +86,9 @@ def assign_best_adjuster(session: Session, claim: Claim) -> RankedAdjuster:
     eligible_adjusters = find_eligible_adjusters(session, claim, required_expertise)
 
     if not eligible_adjusters:
-        raise AdjusterAssignmentError("No eligible active adjuster found for this claim")
+        raise AdjusterAssignmentError(
+            "No eligible active adjuster found for this claim"
+        )
 
     ranked = sorted(
         eligible_adjusters,
@@ -131,7 +140,8 @@ def find_eligible_adjusters(
     adjusters = [
         adjuster
         for adjuster in list_adjusters(session)
-        if adjuster.is_active and expertise_satisfies(adjuster.expertise, required_expertise)
+        if adjuster.is_active
+        and expertise_satisfies(adjuster.expertise, required_expertise)
     ]
 
     ranked_adjusters: list[RankedAdjuster] = []

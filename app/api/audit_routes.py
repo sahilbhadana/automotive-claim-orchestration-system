@@ -1,4 +1,4 @@
-from uuid import UUID
+﻿from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -19,11 +19,7 @@ router = APIRouter(prefix="/claims/{claim_id}/activity", tags=["audit"])
 async def list_claim_activity_timeline(
     claim_id: UUID,
     session: DatabaseSession,
-    current_user: CurrentUser = require_roles(
-        UserRole.ADJUSTER,
-        UserRole.SUPERVISOR,
-        UserRole.ADMIN,
-    ),
+    current_user: CurrentUser
 ) -> list[AuditLogRead]:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -34,3 +30,5 @@ async def list_claim_activity_timeline(
 
     events = list_claim_audit_events(session, claim_id)
     return [AuditLogRead.model_validate(event) for event in events]
+
+

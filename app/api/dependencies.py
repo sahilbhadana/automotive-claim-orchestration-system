@@ -61,4 +61,3 @@ def require_roles(*roles: UserRole):
         return current_user
 
     return Depends(dependency)
-

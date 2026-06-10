@@ -14,7 +14,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.user import User
-from app.models.user import UserRole
 from app.schemas.auth import UserRegister
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

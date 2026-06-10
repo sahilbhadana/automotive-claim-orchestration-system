@@ -78,7 +78,9 @@ def create_repair_estimate(
     return estimate
 
 
-def list_claim_repair_estimates(session: Session, claim_id: UUID) -> list[RepairEstimate]:
+def list_claim_repair_estimates(
+    session: Session, claim_id: UUID
+) -> list[RepairEstimate]:
     statement = (
         select(RepairEstimate)
         .where(RepairEstimate.claim_id == claim_id)

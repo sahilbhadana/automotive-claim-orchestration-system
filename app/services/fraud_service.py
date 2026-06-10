@@ -47,7 +47,9 @@ def analyze_claim_for_fraud(
         triggered_rules.append("suspicious_repair_cost")
         risk_score += 2
 
-    high_risk_garage = normalized_garage in HIGH_RISK_GARAGES if normalized_garage else False
+    high_risk_garage = (
+        normalized_garage in HIGH_RISK_GARAGES if normalized_garage else False
+    )
     if high_risk_garage:
         triggered_rules.append("high_risk_garage")
         risk_score += 3

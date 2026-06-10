@@ -1,11 +1,10 @@
 """Unit tests for fraud analysis rule engine."""
+
 from __future__ import annotations
 
 import uuid
 from datetime import date
-from unittest.mock import MagicMock
 
-import pytest
 
 from app.models.claim import Claim, ClaimStatus
 from app.schemas.fraud import FraudCheckRequest
@@ -48,7 +47,9 @@ class TestFraudAnalysis:
             garage_name="BIG FRAUD GARAGE",
             repair_estimate_amount=500000.0,
         )
-        result = analyze_claim_for_fraud(session=db_session, claim=claim, payload=payload)
+        result = analyze_claim_for_fraud(
+            session=db_session, claim=claim, payload=payload
+        )
         assert result.risk_score >= 0
 
     def test_high_repair_estimate_escalates_score(self, db_session):

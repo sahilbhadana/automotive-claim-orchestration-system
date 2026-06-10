@@ -1,9 +1,8 @@
 """Unit tests for the retry service and dead-letter queue logic."""
+
 from __future__ import annotations
 
-import pytest
 
-from app.models.failed_task import FailedTask
 from app.models.failed_task import FailedTaskStatus
 from app.services.retry_service import compute_backoff_delay
 from app.services.retry_service import dismiss_failed_task
@@ -82,11 +81,11 @@ class TestScheduleRetry:
         assert updated.status == FailedTaskStatus.DEAD
 
     def test_retries_exhaust_to_dead_after_max(self, db_session):
-        task = record_failed_task(
-            db_session, "test.drain", "err", "Err", max_retries=3
-        )
-        for _ in range(3):
-            schedule_retry(db_session, task)
+        task = record_failed_task(db_session, "test.drain", "err", "Err", max_retries=3)
+        # Need 4 calls: 0→1, 1→2, 2→3, then 3 >= max_retries triggers DEAD
+        for _ in range(4):
+            task = schedule_retry(db_session, task)
+            db_session.refresh(task)
         assert task.status == FailedTaskStatus.DEAD
 
 
@@ -119,5 +118,6 @@ class TestDeadLetterQueue:
 
     def test_requeue_nonexistent_returns_none(self, db_session):
         import uuid
+
         result = requeue_failed_task(db_session, uuid.uuid4())
         assert result is None

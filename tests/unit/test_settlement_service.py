@@ -1,20 +1,19 @@
 """Unit tests for settlement service — payout initiation, retry, reversal."""
+
 from __future__ import annotations
 
 import uuid
 from datetime import date
-from unittest.mock import patch
 
 import pytest
 
 from app.models.claim import Claim, ClaimStatus
-from app.models.settlement import PaymentMethod, Settlement, SettlementStatus
+from app.models.settlement import PaymentMethod, SettlementStatus
 from app.schemas.settlement import InitiatePayoutRequest
 from app.services.settlement_service import (
     PayoutError,
     _backoff_delay,
     initiate_payout,
-    list_pending_retries,
     process_payout,
     reverse_settlement,
 )

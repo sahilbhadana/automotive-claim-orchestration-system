@@ -41,7 +41,9 @@ def verify_vehicle_and_driver(
             reasons=reasons,
         )
 
-    insured_vehicle_match = normalize_identifier(policy.vehicle_number) == vehicle_number
+    insured_vehicle_match = (
+        normalize_identifier(policy.vehicle_number) == vehicle_number
+    )
     if not insured_vehicle_match:
         reasons.append("Vehicle does not match the insured policy vehicle")
 

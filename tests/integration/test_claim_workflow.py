@@ -1,4 +1,5 @@
 """Integration tests: full claim lifecycle via the FastAPI HTTP layer."""
+
 from __future__ import annotations
 
 import pytest
@@ -11,10 +12,12 @@ pytest.importorskip("httpx")
 def client():
     from unittest.mock import patch
 
-    with patch("app.db.session.init_db"), patch(
-        "app.services.document_service.ensure_document_storage"
+    with (
+        patch("app.db.session.init_db"),
+        patch("app.services.document_service.ensure_document_storage"),
     ):
         from app.main import app
+
         return TestClient(app, raise_server_exceptions=True)
 
 

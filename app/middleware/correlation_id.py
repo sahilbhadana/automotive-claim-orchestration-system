@@ -25,9 +25,7 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        correlation_id = (
-            request.headers.get(CORRELATION_ID_HEADER) or str(uuid.uuid4())
-        )
+        correlation_id = request.headers.get(CORRELATION_ID_HEADER) or str(uuid.uuid4())
         request_id = str(uuid.uuid4())
 
         request.state.correlation_id = correlation_id

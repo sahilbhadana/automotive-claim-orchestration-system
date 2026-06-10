@@ -1,28 +1,45 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 
 try:
     from prometheus_client import Counter
     from prometheus_client import Gauge
     from prometheus_client import Histogram
     from prometheus_client import Summary
+
     _PROMETHEUS_AVAILABLE = True
 except ImportError:
     _PROMETHEUS_AVAILABLE = False
 
 if not _PROMETHEUS_AVAILABLE:
+
     class _Noop:
         def __init__(self, *args, **kwargs):
             pass
-        def inc(self, *a, **kw): pass
-        def dec(self, *a, **kw): pass
-        def set(self, *a, **kw): pass
-        def observe(self, *a, **kw): pass
-        def labels(self, *a, **kw): return self
-        def time(self): return self
-        def __enter__(self): return self
-        def __exit__(self, *a): pass
+
+        def inc(self, *a, **kw):
+            pass
+
+        def dec(self, *a, **kw):
+            pass
+
+        def set(self, *a, **kw):
+            pass
+
+        def observe(self, *a, **kw):
+            pass
+
+        def labels(self, *a, **kw):
+            return self
+
+        def time(self):
+            return self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            pass
 
     Counter = Gauge = Histogram = Summary = _Noop  # type: ignore[misc,assignment]
 

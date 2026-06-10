@@ -70,9 +70,7 @@ TEMPLATES: dict[str, NotificationTemplate] = {
     "adjuster_assigned": NotificationTemplate(
         key="adjuster_assigned",
         subject="Adjuster assigned to claim {claim_id}",
-        email_body=(
-            "Adjuster {adjuster_name} has been assigned to claim {claim_id}."
-        ),
+        email_body=("Adjuster {adjuster_name} has been assigned to claim {claim_id}."),
         sms_body="Adjuster assigned to claim {claim_id}.",
     ),
 }
@@ -133,7 +131,9 @@ def dispatch_claim_notification(
     }
 
 
-def resolve_template(event_name: str, current_status: ClaimStatus) -> NotificationTemplate:
+def resolve_template(
+    event_name: str, current_status: ClaimStatus
+) -> NotificationTemplate:
     if event_name in TEMPLATES:
         return TEMPLATES[event_name]
 

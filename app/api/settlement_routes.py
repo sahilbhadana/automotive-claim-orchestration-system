@@ -2,11 +2,10 @@ from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import BackgroundTasks
-from fastapi import Depends
 from fastapi import HTTPException
 
+from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
-from app.api.dependencies import require_roles
 from app.models.user import UserRole
 from app.schemas.settlement import InitiatePayoutRequest
 from app.schemas.settlement import SettlementRead
@@ -30,8 +29,10 @@ def initiate_claim_payout(
     payload: InitiatePayoutRequest,
     background_tasks: BackgroundTasks,
     session: DatabaseSession,
-    _=require_roles(UserRole.ADMIN, UserRole.SUPERVISOR),
+    current_user: CurrentUser,
 ) -> SettlementRead:
+    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERVISOR):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
         raise HTTPException(status_code=404, detail="Claim not found")
@@ -48,8 +49,10 @@ def initiate_claim_payout(
 def list_claim_settlements(
     claim_id: UUID,
     session: DatabaseSession,
-    _=require_roles(UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.ADJUSTER),
+    current_user: CurrentUser,
 ) -> list[SettlementRead]:
+    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.ADJUSTER):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
         raise HTTPException(status_code=404, detail="Claim not found")
@@ -63,8 +66,10 @@ def list_claim_settlements(
 def get_settlement(
     settlement_id: UUID,
     session: DatabaseSession,
-    _=require_roles(UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.ADJUSTER),
+    current_user: CurrentUser,
 ) -> SettlementRead:
+    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.ADJUSTER):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     settlement = get_settlement_by_id(session, settlement_id)
     if settlement is None:
         raise HTTPException(status_code=404, detail="Settlement not found")
@@ -79,8 +84,10 @@ def retry_failed_settlement(
     settlement_id: UUID,
     background_tasks: BackgroundTasks,
     session: DatabaseSession,
-    _=require_roles(UserRole.ADMIN),
+    current_user: CurrentUser,
 ) -> SettlementRead:
+    if current_user.role not in (UserRole.ADMIN,):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     settlement = get_settlement_by_id(session, settlement_id)
     if settlement is None:
         raise HTTPException(status_code=404, detail="Settlement not found")
@@ -97,8 +104,10 @@ def reverse_completed_settlement(
     settlement_id: UUID,
     reason: str,
     session: DatabaseSession,
-    _=require_roles(UserRole.ADMIN),
+    current_user: CurrentUser,
 ) -> SettlementRead:
+    if current_user.role not in (UserRole.ADMIN,):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     settlement = get_settlement_by_id(session, settlement_id)
     if settlement is None:
         raise HTTPException(status_code=404, detail="Settlement not found")

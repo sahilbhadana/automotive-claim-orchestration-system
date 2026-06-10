@@ -24,11 +24,16 @@ def process_payout_task(settlement_id: str) -> dict:
     try:
         settlement = get_settlement_by_id(session, UUID(settlement_id))
         if settlement is None:
-            return {"settlement_id": settlement_id, "processed": False, "error": "Settlement not found"}
+            return {
+                "settlement_id": settlement_id,
+                "processed": False,
+                "error": "Settlement not found",
+            }
 
         updated = process_payout(session, settlement)
 
         from app.events.publisher import publish_payout_initiated
+
         if updated.status.value in ("COMPLETED",):
             try:
                 publish_payout_initiated(

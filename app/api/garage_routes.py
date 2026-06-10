@@ -1,4 +1,4 @@
-from uuid import UUID
+﻿from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -29,10 +29,7 @@ router = APIRouter(tags=["garages"])
 async def create_garage_endpoint(
     payload: GarageCreate,
     session: DatabaseSession,
-    current_user: CurrentUser = require_roles(
-        UserRole.SUPERVISOR,
-        UserRole.ADMIN,
-    ),
+    current_user: CurrentUser
 ) -> GarageRead:
     garage = create_garage(session, payload)
     return GarageRead.model_validate(garage)
@@ -41,11 +38,7 @@ async def create_garage_endpoint(
 @router.get("/garages", response_model=list[GarageRead])
 async def list_garages_endpoint(
     session: DatabaseSession,
-    current_user: CurrentUser = require_roles(
-        UserRole.ADJUSTER,
-        UserRole.SUPERVISOR,
-        UserRole.ADMIN,
-    ),
+    current_user: CurrentUser
 ) -> list[GarageRead]:
     garages = list_garages(session)
     return [GarageRead.model_validate(garage) for garage in garages]
@@ -60,11 +53,7 @@ async def create_repair_estimate_endpoint(
     claim_id: UUID,
     payload: RepairEstimateCreate,
     session: DatabaseSession,
-    current_user: CurrentUser = require_roles(
-        UserRole.ADJUSTER,
-        UserRole.SUPERVISOR,
-        UserRole.ADMIN,
-    ),
+    current_user: CurrentUser
 ) -> RepairEstimateRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -84,15 +73,13 @@ async def create_repair_estimate_endpoint(
     return RepairEstimateRead.model_validate(estimate)
 
 
-@router.get("/claims/{claim_id}/repair-estimates", response_model=list[RepairEstimateRead])
+@router.get(
+    "/claims/{claim_id}/repair-estimates", response_model=list[RepairEstimateRead]
+)
 async def list_repair_estimates_endpoint(
     claim_id: UUID,
     session: DatabaseSession,
-    current_user: CurrentUser = require_roles(
-        UserRole.ADJUSTER,
-        UserRole.SUPERVISOR,
-        UserRole.ADMIN,
-    ),
+    current_user: CurrentUser
 ) -> list[RepairEstimateRead]:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -113,10 +100,7 @@ async def approve_repair_estimate_endpoint(
     estimate_id: UUID,
     payload: RepairEstimateApprovalRequest,
     session: DatabaseSession,
-    current_user: CurrentUser = require_roles(
-        UserRole.SUPERVISOR,
-        UserRole.ADMIN,
-    ),
+    current_user: CurrentUser
 ) -> RepairEstimateRead:
     estimate = get_repair_estimate_by_id(session, estimate_id)
     if estimate is None:
@@ -134,3 +118,5 @@ async def approve_repair_estimate_endpoint(
         ) from exc
 
     return RepairEstimateRead.model_validate(updated_estimate)
+
+

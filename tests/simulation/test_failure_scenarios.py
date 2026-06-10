@@ -4,11 +4,11 @@ These tests deliberately inject failure conditions to verify that the
 system degrades gracefully, retries correctly, and routes failures to
 the dead-letter queue rather than silently dropping data.
 """
+
 from __future__ import annotations
 
 import uuid
 from datetime import date
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -19,12 +19,14 @@ from app.schemas.settlement import InitiatePayoutRequest
 from app.services.retry_service import (
     compute_backoff_delay,
     list_dead_letter_queue,
-    list_failed_tasks,
     record_failed_task,
     schedule_retry,
 )
 from app.services.settlement_service import PayoutError, initiate_payout, process_payout
-from app.services.workflow_service import WorkflowTransitionError, get_allowed_transitions
+from app.services.workflow_service import (
+    WorkflowTransitionError,
+    get_allowed_transitions,
+)
 
 
 def _make_claim(status: ClaimStatus = ClaimStatus.APPROVED) -> Claim:
@@ -46,12 +48,14 @@ class TestWorkflowFailureScenarios:
         assert transitions == [], "PAYOUT should have no forward transitions"
 
     def test_terminal_state_cannot_be_transitioned(self):
-        from app.services.workflow_service import WorkflowTransitionError, is_terminal_state
+        from app.services.workflow_service import is_terminal_state
+
         assert is_terminal_state(ClaimStatus.REJECTED)
         assert is_terminal_state(ClaimStatus.PAYOUT)
 
     def test_workflow_rejects_skip_transitions(self):
         from app.services.workflow_service import resolve_target_status
+
         with pytest.raises(WorkflowTransitionError):
             resolve_target_status(
                 allowed_transitions=[ClaimStatus.DOCUMENT_VERIFICATION],
@@ -68,10 +72,11 @@ class TestRetryExhaustionScenario:
             error_type="OperationalError",
             max_retries=3,
         )
-        for _ in range(3):
-            schedule_retry(db_session, task)
+        # Need 4 calls: 0→1, 1→2, 2→3, then 3 >= max_retries triggers DEAD
+        for _ in range(4):
+            task = schedule_retry(db_session, task)
+            db_session.refresh(task)
 
-        db_session.refresh(task)
         assert task.status == FailedTaskStatus.DEAD
 
     def test_dead_tasks_accumulate_in_dlq(self, db_session):

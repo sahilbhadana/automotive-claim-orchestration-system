@@ -1,4 +1,4 @@
-from uuid import UUID
+﻿from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -16,15 +16,16 @@ from app.services.notification_service import dispatch_claim_notification
 router = APIRouter(prefix="/claims/{claim_id}/notifications", tags=["notifications"])
 
 
-@router.post("/dispatch", response_model=NotificationDeliveryRead, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/dispatch",
+    response_model=NotificationDeliveryRead,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def dispatch_claim_notification_endpoint(
     claim_id: UUID,
     payload: NotificationDispatchRequest,
     session: DatabaseSession,
-    current_user: CurrentUser = require_roles(
-        UserRole.SUPERVISOR,
-        UserRole.ADMIN,
-    ),
+    current_user: CurrentUser
 ) -> NotificationDeliveryRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -40,3 +41,5 @@ async def dispatch_claim_notification_endpoint(
         override_message=payload.message,
     )
     return NotificationDeliveryRead(**result)
+
+

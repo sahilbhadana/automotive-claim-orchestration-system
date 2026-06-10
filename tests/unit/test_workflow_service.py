@@ -1,9 +1,9 @@
 """Unit tests for the claim workflow state machine."""
+
 from __future__ import annotations
 
 import uuid
 from datetime import date
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -55,12 +55,15 @@ class TestTerminalStateDetection:
     def test_terminal_states(self, status):
         assert is_terminal_state(status) is True
 
-    @pytest.mark.parametrize("status", [
-        ClaimStatus.CLAIM_CREATED,
-        ClaimStatus.DOCUMENT_VERIFICATION,
-        ClaimStatus.FRAUD_ANALYSIS,
-        ClaimStatus.APPROVED,
-    ])
+    @pytest.mark.parametrize(
+        "status",
+        [
+            ClaimStatus.CLAIM_CREATED,
+            ClaimStatus.DOCUMENT_VERIFICATION,
+            ClaimStatus.FRAUD_ANALYSIS,
+            ClaimStatus.APPROVED,
+        ],
+    )
     def test_non_terminal_states(self, status):
         assert is_terminal_state(status) is False
 
@@ -76,7 +79,10 @@ class TestResolveTargetStatus:
     def test_raises_when_multiple_options_and_no_target(self):
         with pytest.raises(WorkflowTransitionError, match="Multiple transition paths"):
             resolve_target_status(
-                allowed_transitions=[ClaimStatus.POLICY_VALIDATION, ClaimStatus.REJECTED],
+                allowed_transitions=[
+                    ClaimStatus.POLICY_VALIDATION,
+                    ClaimStatus.REJECTED,
+                ],
                 target_status=None,
             )
 
@@ -125,6 +131,6 @@ class TestFullWorkflowPath:
             current = happy_path[i]
             expected_next = happy_path[i + 1]
             transitions = get_allowed_transitions(current)
-            assert expected_next in transitions, (
-                f"Expected {expected_next} in transitions from {current}, got {transitions}"
-            )
+            assert (
+                expected_next in transitions
+            ), f"Expected {expected_next} in transitions from {current}, got {transitions}"

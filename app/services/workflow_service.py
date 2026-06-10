@@ -9,7 +9,10 @@ from app.services.claim_service import update_claim_status
 
 DEFAULT_WORKFLOW_TRANSITIONS: dict[ClaimStatus, list[ClaimStatus]] = {
     ClaimStatus.CLAIM_CREATED: [ClaimStatus.DOCUMENT_VERIFICATION],
-    ClaimStatus.DOCUMENT_VERIFICATION: [ClaimStatus.POLICY_VALIDATION, ClaimStatus.REJECTED],
+    ClaimStatus.DOCUMENT_VERIFICATION: [
+        ClaimStatus.POLICY_VALIDATION,
+        ClaimStatus.REJECTED,
+    ],
     ClaimStatus.POLICY_VALIDATION: [ClaimStatus.FRAUD_ANALYSIS, ClaimStatus.REJECTED],
     ClaimStatus.FRAUD_ANALYSIS: [ClaimStatus.ADJUSTER_ASSIGNMENT, ClaimStatus.REJECTED],
     ClaimStatus.ADJUSTER_ASSIGNMENT: [ClaimStatus.REPAIR_ESTIMATION],
@@ -61,7 +64,9 @@ def execute_workflow_step(
         details={
             "previous_status": previous_status.value,
             "current_status": updated_claim.status.value,
-            "transition": build_workflow_transition_name(previous_status, updated_claim.status),
+            "transition": build_workflow_transition_name(
+                previous_status, updated_claim.status
+            ),
         },
     )
     session.commit()

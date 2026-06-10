@@ -60,7 +60,9 @@ class Settlement(Base):
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, default=3)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    transaction_reference: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    transaction_reference: Mapped[str | None] = mapped_column(
+        String(200), nullable=True
+    )
     initiated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

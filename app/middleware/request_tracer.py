@@ -51,9 +51,7 @@ class RequestTracerMiddleware(BaseHTTPMiddleware):
                     "duration_ms": round(duration_ms, 2),
                     "correlation_id": correlation_id,
                     "request_id": request_id,
-                    "client_ip": (
-                        request.client.host if request.client else "unknown"
-                    ),
+                    "client_ip": (request.client.host if request.client else "unknown"),
                 },
             )
 

@@ -4,12 +4,6 @@ import logging
 import sys
 from typing import Any
 
-try:
-    import json as _json
-    _JSON_AVAILABLE = True
-except ImportError:
-    _JSON_AVAILABLE = False
-
 
 class StructuredFormatter(logging.Formatter):
     """Emit log records as single-line JSON objects for log aggregators."""
@@ -33,10 +27,26 @@ class StructuredFormatter(logging.Formatter):
 
         for key, value in record.__dict__.items():
             if key.startswith("_") or key in {
-                "msg", "args", "levelname", "levelno", "pathname",
-                "filename", "module", "exc_info", "exc_text", "stack_info",
-                "lineno", "funcName", "created", "msecs", "relativeCreated",
-                "thread", "threadName", "processName", "process", "name",
+                "msg",
+                "args",
+                "levelname",
+                "levelno",
+                "pathname",
+                "filename",
+                "module",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+                "lineno",
+                "funcName",
+                "created",
+                "msecs",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "processName",
+                "process",
+                "name",
                 "message",
             }:
                 continue

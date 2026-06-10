@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from app.models.claim import Claim
 from app.models.claim import ClaimStatus
-from app.models.settlement import PaymentMethod
 from app.models.settlement import Settlement
 from app.models.settlement import SettlementStatus
 from app.schemas.settlement import InitiatePayoutRequest
@@ -40,7 +39,9 @@ def initiate_payout(
         session.query(Settlement)
         .filter(
             Settlement.claim_id == claim.id,
-            Settlement.status.in_([SettlementStatus.INITIATED, SettlementStatus.PROCESSING]),
+            Settlement.status.in_(
+                [SettlementStatus.INITIATED, SettlementStatus.PROCESSING]
+            ),
         )
         .first()
     )
@@ -81,7 +82,7 @@ def process_payout(session: Session, settlement: Settlement) -> Settlement:
     settlement.status = SettlementStatus.PROCESSING
     session.commit()
 
-    simulated_success = (settlement.retry_count % 2 == 0)
+    simulated_success = settlement.retry_count % 2 == 0
 
     if simulated_success:
         settlement.status = SettlementStatus.COMPLETED

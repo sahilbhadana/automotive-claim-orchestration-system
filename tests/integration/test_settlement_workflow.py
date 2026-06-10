@@ -1,4 +1,5 @@
 """Integration tests for the settlement and payout workflow."""
+
 from __future__ import annotations
 
 import uuid
