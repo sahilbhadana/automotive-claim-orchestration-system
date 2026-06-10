@@ -70,7 +70,7 @@ The system manages every stage of an insurance claim:
 
 ## 🚀 Core Features
 
-### Resilience & Reliability (Days 14–16)
+### Resilience & Reliability 
 
 - **Dead-Letter Queue (DLQ)** — Every Celery task failure is persisted to the `failed_tasks` table with full context
 - **Exponential Backoff Retry** — Base 2s (30s for settlements), doubles each retry, capped at 300s
@@ -78,7 +78,7 @@ The system manages every stage of an insurance claim:
 - **Payout Retry Logic** — Settlement failures schedule automatic retries; manual requeue via admin API
 - **Admin DLQ Interface** — `/api/v1/dlq` endpoints: view dead tasks, stats, requeue, schedule retry, dismiss
 
-### Event-Driven Architecture (Day 15)
+### Event-Driven Architecture
 
 - **RabbitMQ Topic Exchange** — `insurance.claims` publishes domain events
 - **Routing Keys**:
@@ -89,7 +89,7 @@ The system manages every stage of an insurance claim:
 - **Graceful Fallback** — If RabbitMQ is unavailable, events are logged as JSON and queued (no hard dependency)
 - **Correlation IDs** — All events carry `correlation_id` for distributed request tracing
 
-### Payout Settlement & Retry (Day 16)
+### Payout Settlement & Retry
 
 - **Settlement Model** — Full state machine: `INITIATED → PROCESSING → COMPLETED/FAILED → REVERSED`
 - **Simulated Bank Gateway** — Payout succeeds on even retry counts, fails on odd (demo behavior; swap with real API)
@@ -101,7 +101,7 @@ The system manages every stage of an insurance claim:
   - `POST /api/v1/settlements/{settlement_id}/retry` — retry failed settlement
   - `POST /api/v1/settlements/{settlement_id}/reverse` — reverse completed settlement
 
-### Observability & Monitoring (Day 17)
+### Observability & Monitoring
 
 - **Structured JSON Logging** — Every log is a single-line JSON object (timestamp, level, correlation_id, duration_ms, exception)
 - **Production Format** — Set `APP_ENV=production` to enable JSON; dev mode uses human-readable format
@@ -119,7 +119,7 @@ The system manages every stage of an insurance claim:
   - `GET /api/v1/metrics` — Prometheus text format (scrape-friendly)
   - `GET /api/v1/metrics/summary` — JSON snapshot for dashboards
 
-### API Gateway & Rate Limiting (Day 18)
+### API Gateway & Rate Limiting
 
 - **Correlation ID Middleware** — Mints `X-Correlation-ID` per request; echoes client-supplied values
 - **Request ID** — Each request gets a unique `X-Request-ID` for hop-by-hop tracing
@@ -131,7 +131,7 @@ The system manages every stage of an insurance claim:
 - **Request Tracer** — Structured access log with method, path, status, duration_ms, correlation_id, client IP
 - **CORS** — Enabled for all origins (configure in production)
 
-### Testing & Validation (Day 19)
+### Testing & Validation
 
 Three test layers with **~50 test cases**:
 
@@ -156,7 +156,7 @@ Run all tests:
 pytest tests/ -v
 ```
 
-### Production Readiness (Day 20)
+### Production Readiness
 
 - **GitHub Actions CI** — Lint (ruff), typecheck (mypy), test (unit/integration/simulation), Docker build with cache, OpenAPI schema export
 - **Architecture Documentation** — Full system diagram, state machine flowchart, design decision table
@@ -428,61 +428,61 @@ insurance-clain-wf/
 │   │   ├── claim_routes.py
 │   │   ├── workflow_routes.py
 │   │   ├── fraud_routes.py
-│   │   ├── settlement_routes.py  ← New (Day 16)
-│   │   ├── retry_routes.py       ← New (Day 14)
-│   │   ├── metrics_routes.py     ← New (Day 17)
+│   │   ├── settlement_routes.py
+│   │   ├── retry_routes.py
+│   │   ├── metrics_routes.py
 │   │   └── ...
 │   ├── core/
 │   │   ├── config.py
-│   │   ├── logging.py            ← New (Day 17)
-│   │   └── metrics.py            ← New (Day 17)
+│   │   ├── logging.py
+│   │   └── metrics.py
 │   ├── db/
 │   │   └── session.py
-│   ├── middleware/               ← New (Day 18)
+│   ├── middleware/
 │   │   ├── correlation_id.py
 │   │   ├── rate_limiter.py
 │   │   └── request_tracer.py
 │   ├── models/
 │   │   ├── claim.py
-│   │   ├── settlement.py         ← New (Day 16)
-│   │   ├── failed_task.py        ← New (Day 14)
+│   │   ├── settlement.py
+│   │   ├── failed_task.py
 │   │   └── ...
 │   ├── services/
-│   │   ├── retry_service.py      ← New (Day 14)
-│   │   ├── settlement_service.py ← New (Day 16)
+│   │   ├── retry_service.py
+│   │   ├── settlement_service.py
 │   │   ├── workflow_service.py
 │   │   ├── fraud_service.py
 │   │   └── ...
 │   ├── schemas/
-│   │   ├── retry.py              ← New (Day 14)
-│   │   ├── settlement.py         ← New (Day 16)
+│   │   ├── retry.py
+│   │   ├── settlement.py
 │   │   └── ...
 │   ├── tasks/
 │   │   ├── claim_tasks.py        (updated with ResilientTask)
-│   │   └── settlement_tasks.py   ← New (Day 16)
+│   │   └── settlement_tasks.py
 │   ├── workers/
 │   │   ├── celery_app.py         (updated with settings)
-│   │   └── base_task.py          ← New (Day 14)
-│   ├── events/                   ← New (Day 15)
+│   │   └── base_task.py
+│   ├── events/
 │   │   ├── event_schemas.py
 │   │   └── publisher.py
 │   └── main.py                   (updated with middleware)
-├── tests/                        ← New (Day 19)
+├── tests/
 │   ├── unit/
 │   ├── integration/
 │   ├── simulation/
 │   ├── conftest.py
 │   └── pytest.ini
 ├── .github/workflows/
-│   └── ci.yml                    ← New (Day 20)
-├── docs/                         ← New (Day 20)
+│   └── ci.yml
+├── docs/
 │   ├── architecture.md
 │   └── deployment.md
-├── postman/                      ← New (Day 20)
+├── postman/
 │   └── insurance_claims_api.json
 ├── .env.example                  (updated)
 ├── docker-compose.yml            (updated with RabbitMQ, Prometheus)
-├── prometheus.yml                ← New (Day 15)
+├── prometheus.yml
 ├── requirements.txt              (updated)
 ├── README.md                     (this file)
 └── Dockerfile
@@ -631,20 +631,6 @@ RATE_LIMIT_AUTH=50
 - **API Reference**: Auto-generated at `/docs` (Swagger UI)
 - **Postman Collection**: `postman/insurance_claims_api.json`
 - **CI/CD Pipeline**: `.github/workflows/ci.yml`
-
----
-
-## 🎯 Days Built
-
-| Day | Feature | Status |
-|---|---|---|
-| 14 | Retry & Failure Recovery (DLQ, exponential backoff, ResilientTask) | ✅ Complete |
-| 15 | Event-Driven Architecture (RabbitMQ, domain events) | ✅ Complete |
-| 16 | Payment & Settlement Workflow (payout + retry orchestration) | ✅ Complete |
-| 17 | Observability & Monitoring (JSON logging, Prometheus, 15 metrics) | ✅ Complete |
-| 18 | API Gateway & Rate Limiting (middleware, correlation IDs) | ✅ Complete |
-| 19 | Testing & Reliability (50+ tests, unit/integration/simulation) | ✅ Complete |
-| 20 | Production Readiness (CI/CD, architecture docs, deployment guide, Postman) | ✅ Complete |
 
 ---
 
