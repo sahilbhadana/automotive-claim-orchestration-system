@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -98,4 +98,3 @@ def dismiss_task_from_queue(
     if not deleted:
         raise HTTPException(status_code=404, detail="Failed task not found")
     return {"deleted": True, "task_id": str(task_id)}
-

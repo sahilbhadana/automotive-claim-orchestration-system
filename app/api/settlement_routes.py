@@ -51,7 +51,11 @@ def list_claim_settlements(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> list[SettlementRead]:
-    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.ADJUSTER):
+    if current_user.role not in (
+        UserRole.ADMIN,
+        UserRole.SUPERVISOR,
+        UserRole.ADJUSTER,
+    ):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -68,7 +72,11 @@ def get_settlement(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> SettlementRead:
-    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.ADJUSTER):
+    if current_user.role not in (
+        UserRole.ADMIN,
+        UserRole.SUPERVISOR,
+        UserRole.ADJUSTER,
+    ):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     settlement = get_settlement_by_id(session, settlement_id)
     if settlement is None:

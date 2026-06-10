@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -23,7 +23,7 @@ async def dispatch_claim_notification_endpoint(
     claim_id: UUID,
     payload: NotificationDispatchRequest,
     session: DatabaseSession,
-    current_user: CurrentUser
+    current_user: CurrentUser,
 ) -> NotificationDeliveryRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -39,5 +39,3 @@ async def dispatch_claim_notification_endpoint(
         override_message=payload.message,
     )
     return NotificationDeliveryRead(**result)
-
-

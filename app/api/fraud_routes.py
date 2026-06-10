@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -19,7 +19,7 @@ async def analyze_claim_for_fraud_endpoint(
     claim_id: UUID,
     payload: FraudCheckRequest,
     session: DatabaseSession,
-    current_user: CurrentUser
+    current_user: CurrentUser,
 ) -> FraudAnalysisRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -29,5 +29,3 @@ async def analyze_claim_for_fraud_endpoint(
         )
 
     return analyze_claim_for_fraud(session, claim, payload)
-
-

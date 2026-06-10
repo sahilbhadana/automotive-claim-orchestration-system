@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -25,9 +25,7 @@ router = APIRouter(tags=["garages"])
 
 @router.post("/garages", response_model=GarageRead, status_code=status.HTTP_201_CREATED)
 async def create_garage_endpoint(
-    payload: GarageCreate,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    payload: GarageCreate, session: DatabaseSession, current_user: CurrentUser
 ) -> GarageRead:
     garage = create_garage(session, payload)
     return GarageRead.model_validate(garage)
@@ -35,8 +33,7 @@ async def create_garage_endpoint(
 
 @router.get("/garages", response_model=list[GarageRead])
 async def list_garages_endpoint(
-    session: DatabaseSession,
-    current_user: CurrentUser
+    session: DatabaseSession, current_user: CurrentUser
 ) -> list[GarageRead]:
     garages = list_garages(session)
     return [GarageRead.model_validate(garage) for garage in garages]
@@ -51,7 +48,7 @@ async def create_repair_estimate_endpoint(
     claim_id: UUID,
     payload: RepairEstimateCreate,
     session: DatabaseSession,
-    current_user: CurrentUser
+    current_user: CurrentUser,
 ) -> RepairEstimateRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -75,9 +72,7 @@ async def create_repair_estimate_endpoint(
     "/claims/{claim_id}/repair-estimates", response_model=list[RepairEstimateRead]
 )
 async def list_repair_estimates_endpoint(
-    claim_id: UUID,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> list[RepairEstimateRead]:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -98,7 +93,7 @@ async def approve_repair_estimate_endpoint(
     estimate_id: UUID,
     payload: RepairEstimateApprovalRequest,
     session: DatabaseSession,
-    current_user: CurrentUser
+    current_user: CurrentUser,
 ) -> RepairEstimateRead:
     estimate = get_repair_estimate_by_id(session, estimate_id)
     if estimate is None:
@@ -116,5 +111,3 @@ async def approve_repair_estimate_endpoint(
         ) from exc
 
     return RepairEstimateRead.model_validate(updated_estimate)
-
-

@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
@@ -18,9 +18,7 @@ router = APIRouter(prefix="/policies", tags=["policies"])
 
 @router.post("", response_model=PolicyRead, status_code=status.HTTP_201_CREATED)
 async def create_policy_endpoint(
-    payload: PolicyCreate,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    payload: PolicyCreate, session: DatabaseSession, current_user: CurrentUser
 ) -> PolicyRead:
     existing_policy = get_policy_by_number(session, payload.policy_number)
     if existing_policy is not None:
@@ -35,8 +33,7 @@ async def create_policy_endpoint(
 
 @router.get("", response_model=list[PolicyRead])
 async def list_policies_endpoint(
-    session: DatabaseSession,
-    current_user: CurrentUser
+    session: DatabaseSession, current_user: CurrentUser
 ) -> list[PolicyRead]:
     policies = list_policies(session)
     return [PolicyRead.model_validate(policy) for policy in policies]
@@ -44,9 +41,7 @@ async def list_policies_endpoint(
 
 @router.get("/{policy_number}", response_model=PolicyRead)
 async def get_policy_endpoint(
-    policy_number: str,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    policy_number: str, session: DatabaseSession, current_user: CurrentUser
 ) -> PolicyRead:
     policy = get_policy_by_number(session, policy_number)
     if policy is None:
@@ -61,9 +56,7 @@ async def get_policy_endpoint(
 async def validate_policy_endpoint(
     payload: PolicyValidationRequest,
     session: DatabaseSession,
-    current_user: CurrentUser
+    current_user: CurrentUser,
 ) -> PolicyValidationResult:
     policy = get_policy_by_number(session, payload.policy_number)
     return validate_policy_coverage(policy, payload)
-
-

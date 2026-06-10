@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import File
@@ -59,9 +59,7 @@ async def upload_claim_document(
 
 @router.get("", response_model=list[ClaimDocumentRead])
 async def list_claim_documents_endpoint(
-    claim_id: UUID,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> list[ClaimDocumentRead]:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -72,5 +70,3 @@ async def list_claim_documents_endpoint(
 
     documents = list_claim_documents(session, claim_id)
     return [ClaimDocumentRead.model_validate(document) for document in documents]
-
-

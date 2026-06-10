@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -22,9 +22,7 @@ router = APIRouter(prefix="/claims/{claim_id}/workflow", tags=["workflow"])
 
 @router.get("", response_model=WorkflowStateRead)
 async def get_claim_workflow_state(
-    claim_id: UUID,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> WorkflowStateRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -46,7 +44,7 @@ async def execute_claim_workflow_step(
     claim_id: UUID,
     payload: WorkflowStepExecutionRequest,
     session: DatabaseSession,
-    current_user: CurrentUser
+    current_user: CurrentUser,
 ) -> WorkflowExecutionRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -79,5 +77,3 @@ async def execute_claim_workflow_step(
         terminal=is_terminal_state(updated_claim.status),
         reason=payload.reason,
     )
-
-

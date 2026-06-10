@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -26,9 +26,7 @@ router = APIRouter(tags=["adjusters"])
     status_code=status.HTTP_201_CREATED,
 )
 async def create_adjuster_endpoint(
-    payload: AdjusterCreate,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    payload: AdjusterCreate, session: DatabaseSession, current_user: CurrentUser
 ) -> AdjusterRead:
     adjuster = create_adjuster(
         session=session,
@@ -43,8 +41,7 @@ async def create_adjuster_endpoint(
 
 @router.get("/adjusters", response_model=list[AdjusterRead])
 async def list_adjusters_endpoint(
-    session: DatabaseSession,
-    current_user: CurrentUser
+    session: DatabaseSession, current_user: CurrentUser
 ) -> list[AdjusterRead]:
     adjusters = list_adjusters(session)
     return [AdjusterRead.model_validate(adjuster) for adjuster in adjusters]
@@ -55,9 +52,7 @@ async def list_adjusters_endpoint(
     response_model=AdjusterAssignmentRead,
 )
 async def assign_adjuster_endpoint(
-    claim_id: UUID,
-    session: DatabaseSession,
-    current_user: CurrentUser
+    claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> AdjusterAssignmentRead:
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
@@ -84,5 +79,3 @@ async def assign_adjuster_endpoint(
         required_expertise=determine_required_expertise(float(claim.claim_amount)),
         assigned_expertise=ranked.adjuster.expertise,
     )
-
-
