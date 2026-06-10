@@ -1,6 +1,5 @@
 # Insurance Claim Workflow Orchestration System
 
-<!-- CI/CD Pipeline test commit -->
 A **production-grade** FastAPI backend for end-to-end automotive insurance claim processing. Handles the full claim lifecycle: submission, fraud detection, adjuster assignment, repair estimation, settlement, and payout — with enterprise-class reliability, observability, and event-driven architecture.
 
 ---
