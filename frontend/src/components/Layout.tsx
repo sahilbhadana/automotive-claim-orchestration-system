@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Activity,
   Banknote,
@@ -50,7 +50,7 @@ export function Layout() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-brand">
+        <Link to="/" className="sidebar-brand">
           <div className="brand-logo">
             <ShieldCheck size={17} />
           </div>
@@ -58,7 +58,7 @@ export function Layout() {
             <span className="brand-name">ClaimFlow</span>
             <span className="brand-tag">Claims Platform</span>
           </div>
-        </div>
+        </Link>
         <nav className="sidebar-nav">
           {sections.map((section) => (
             <div key={section}>
