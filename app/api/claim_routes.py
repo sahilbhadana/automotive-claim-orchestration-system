@@ -1,9 +1,11 @@
 from uuid import UUID
 
 from fastapi import APIRouter
-from fastapi import HTTPException
 from fastapi import status
 
+from app.api.authz import ensure_claim_view_access
+from app.api.authz import ensure_staff
+from app.api.authz import is_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.claim import ClaimCreate
@@ -21,7 +23,7 @@ router = APIRouter(prefix="/claims", tags=["claims"])
 async def create_claim_endpoint(
     payload: ClaimCreate, session: DatabaseSession, current_user: CurrentUser
 ) -> ClaimRead:
-    claim = create_claim(session, payload)
+    claim = create_claim(session, payload, claimant_id=current_user.id)
     return ClaimRead.model_validate(claim)
 
 
@@ -29,7 +31,9 @@ async def create_claim_endpoint(
 async def list_claims_endpoint(
     session: DatabaseSession, current_user: CurrentUser
 ) -> list[ClaimRead]:
-    claims = list_claims(session)
+    # Staff see the whole book; customers see only their own claims.
+    claimant_filter = None if is_staff(current_user) else current_user.id
+    claims = list_claims(session, claimant_id=claimant_filter)
     return [ClaimRead.model_validate(claim) for claim in claims]
 
 
@@ -37,12 +41,7 @@ async def list_claims_endpoint(
 async def get_claim_endpoint(
     claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> ClaimRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
     return ClaimRead.model_validate(claim)
 
 
@@ -53,11 +52,7 @@ async def update_claim_status_endpoint(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> ClaimRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    ensure_staff(current_user)
+    claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
     updated_claim = update_claim_status(session, claim, payload.status)
     return ClaimRead.model_validate(updated_claim)

@@ -4,6 +4,8 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.authz import ensure_claim_view_access
+from app.api.authz import ensure_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.workflow import WorkflowExecutionRead
@@ -24,12 +26,7 @@ router = APIRouter(prefix="/claims/{claim_id}/workflow", tags=["workflow"])
 async def get_claim_workflow_state(
     claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> WorkflowStateRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     return WorkflowStateRead(
         claim_id=serialize_claim_id(claim.id),
@@ -46,12 +43,9 @@ async def execute_claim_workflow_step(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> WorkflowExecutionRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    # Workflow transitions are operational decisions: staff only.
+    ensure_staff(current_user)
+    claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     try:
         previous_status, updated_claim = execute_workflow_step(

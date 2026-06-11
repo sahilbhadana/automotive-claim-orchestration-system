@@ -1,6 +1,8 @@
+import logging
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
+from sqlalchemy import inspect
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import DeclarativeBase
@@ -8,6 +10,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 engine = create_engine(settings.database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -49,6 +53,27 @@ def init_db() -> None:
     Settlement.__table__
     User.__table__
     Base.metadata.create_all(bind=engine)
+    run_schema_migrations()
+
+
+def run_schema_migrations() -> None:
+    """Apply additive schema changes that create_all cannot handle.
+
+    create_all only creates missing tables; columns added to existing
+    tables must be ALTERed in. Each migration here must be idempotent.
+    """
+    inspector = inspect(engine)
+    if "claims" not in inspector.get_table_names():
+        return
+
+    claim_columns = {column["name"] for column in inspector.get_columns("claims")}
+    if "claimant_id" not in claim_columns:
+        column_type = "UUID" if engine.dialect.name == "postgresql" else "CHAR(32)"
+        with engine.begin() as connection:
+            connection.execute(
+                text(f"ALTER TABLE claims ADD COLUMN claimant_id {column_type}")
+            )
+        logger.info("migrated: added claims.claimant_id")
 
 
 def check_database_connection() -> bool:

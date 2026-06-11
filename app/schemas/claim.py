@@ -33,6 +33,7 @@ class ClaimRead(BaseModel):
     claim_amount: float
     description: str
     adjuster_id: UUID | None = None
+    claimant_id: UUID | None = None
     status: ClaimStatus
     created_at: datetime
     updated_at: datetime

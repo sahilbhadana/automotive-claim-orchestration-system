@@ -9,8 +9,12 @@ from app.services.audit_service import record_audit_event
 from app.schemas.claim import ClaimCreate
 
 
-def create_claim(session: Session, payload: ClaimCreate) -> Claim:
-    claim = Claim(**payload.model_dump())
+def create_claim(
+    session: Session,
+    payload: ClaimCreate,
+    claimant_id: UUID | None = None,
+) -> Claim:
+    claim = Claim(**payload.model_dump(), claimant_id=claimant_id)
     session.add(claim)
     session.flush()
     record_audit_event(
@@ -25,6 +29,7 @@ def create_claim(session: Session, payload: ClaimCreate) -> Claim:
             "incident_city": claim.incident_city,
             "claim_amount": float(claim.claim_amount),
             "status": claim.status.value,
+            "claimant_id": str(claimant_id) if claimant_id else None,
         },
     )
     session.commit()
@@ -32,8 +37,10 @@ def create_claim(session: Session, payload: ClaimCreate) -> Claim:
     return claim
 
 
-def list_claims(session: Session) -> list[Claim]:
+def list_claims(session: Session, claimant_id: UUID | None = None) -> list[Claim]:
     statement = select(Claim).order_by(Claim.created_at.desc())
+    if claimant_id is not None:
+        statement = statement.where(Claim.claimant_id == claimant_id)
     return list(session.scalars(statement).all())
 
 

@@ -51,6 +51,7 @@ export interface Claim {
   claim_amount: number;
   description: string;
   adjuster_id: string | null;
+  claimant_id: string | null;
   status: ClaimStatus;
   created_at: string;
   updated_at: string;

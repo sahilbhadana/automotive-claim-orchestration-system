@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import { listClaims } from "../api/endpoints";
 import type { Claim, ClaimStatus } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { DonutChart } from "../components/DonutChart";
 import { StatusBadge } from "../components/StatusBadge";
 
@@ -28,6 +29,7 @@ const formatINR = (amount: number) =>
   }).format(amount);
 
 export function ClaimsListPage() {
+  const { user } = useAuth();
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,10 +102,11 @@ export function ClaimsListPage() {
       <div className="page-header">
         <div>
           <div className="eyebrow">Workspace</div>
-          <h1>Claims</h1>
+          <h1>{user?.role === "customer" ? "My Claims" : "Claims"}</h1>
           <p className="page-subtitle">
-            Every claim in your book, from first notice of loss to settled
-            payout.
+            {user?.role === "customer"
+              ? "Your claims, from first notice of loss to settled payout."
+              : "Every claim in the book, from first notice of loss to settled payout."}
           </p>
         </div>
         <Link to="/claims/new" className="btn btn-primary">

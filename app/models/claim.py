@@ -46,6 +46,13 @@ class Claim(Base):
         nullable=True,
         index=True,
     )
+    # The user who filed the claim. Nullable so rows created before
+    # ownership existed remain valid; unowned claims are staff-visible only.
+    claimant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True,
+        index=True,
+    )
     status: Mapped[ClaimStatus] = mapped_column(
         Enum(ClaimStatus, name="claim_status"),
         default=ClaimStatus.CLAIM_CREATED,
