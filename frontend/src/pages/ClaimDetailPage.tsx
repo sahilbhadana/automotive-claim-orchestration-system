@@ -25,6 +25,7 @@ import type {
 } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { StatusBadge } from "../components/StatusBadge";
+import { useToast } from "../components/Toast";
 import { WorkflowStepper } from "../components/WorkflowStepper";
 
 const formatINR = (amount: number) =>
@@ -53,8 +54,8 @@ export function ClaimDetailPage() {
   const [fraud, setFraud] = useState<FraudAnalysis | null>(null);
   const [tab, setTab] = useState<Tab>("workflow");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   const canManage =
     user?.role === "adjuster" || user?.role === "supervisor" || user?.role === "admin";
@@ -104,15 +105,9 @@ export function ClaimDetailPage() {
     );
   }
 
-  const flash = (msg: string) => {
-    setNotice(msg);
-    setError(null);
-    setTimeout(() => setNotice(null), 4000);
-  };
-  const fail = (err: unknown) => {
-    setError(err instanceof Error ? err.message : "Operation failed");
-    setNotice(null);
-  };
+  const flash = (msg: string) => toast.success(msg);
+  const fail = (err: unknown) =>
+    toast.error(err instanceof Error ? err.message : "Operation failed");
 
   const handleTransition = async (target: ClaimStatus) => {
     try {
@@ -153,9 +148,6 @@ export function ClaimDetailPage() {
           </p>
         </div>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
-      {notice && <div className="alert alert-success">{notice}</div>}
 
       <div className="card">
         <WorkflowStepper status={claim.status} />
@@ -338,10 +330,11 @@ function DocumentsTab({
       <h3>Required documents</h3>
       <div className="doc-checklist">
         {requiredTypes.map((t) => (
-          <div key={t} className="doc-check-item">
-            <span className={uploadedTypes.has(t) ? "check-done" : "check-todo"}>
-              {uploadedTypes.has(t) ? "✓" : "○"}
-            </span>
+          <div
+            key={t}
+            className={`doc-check-item${uploadedTypes.has(t) ? " is-done" : ""}`}
+          >
+            <span>{uploadedTypes.has(t) ? "✓" : "○"}</span>
             {DOC_LABELS[t]}
           </div>
         ))}

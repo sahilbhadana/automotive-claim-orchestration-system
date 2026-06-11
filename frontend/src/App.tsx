@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { Layout } from "./components/Layout";
+import { ToastProvider } from "./components/Toast";
 import { Protected } from "./components/Protected";
 import { ClaimDetailPage } from "./pages/ClaimDetailPage";
 import { ClaimsListPage } from "./pages/ClaimsListPage";
@@ -13,8 +14,9 @@ import { SystemHealthPage } from "./pages/SystemHealthPage";
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <ToastProvider>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -55,8 +57,9 @@ export default function App() {
             />
           </Route>
           <Route path="*" element={<Navigate to="/claims" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

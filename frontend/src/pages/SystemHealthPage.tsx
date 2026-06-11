@@ -76,9 +76,10 @@ export function SystemHealthPage() {
       <div className="stat-grid">
         <div className="stat-card">
           <div
-            className={`stat-value ${health?.status === "ok" ? "stat-green" : "stat-red"}`}
+            className={`health-pill ${health?.status === "ok" ? "stat-green" : "stat-red"}`}
           >
-            {health?.status === "ok" ? "● Online" : "● Down"}
+            <span className="pulse" style={{ background: "currentColor" }} />
+            {health?.status === "ok" ? "Online" : "Down"}
           </div>
           <div className="stat-label">
             API ({health?.environment ?? "unknown"})
@@ -86,16 +87,18 @@ export function SystemHealthPage() {
         </div>
         <div className="stat-card">
           <div
-            className={`stat-value ${readiness?.database === "up" ? "stat-green" : "stat-red"}`}
+            className={`health-pill ${readiness?.database === "up" ? "stat-green" : "stat-red"}`}
           >
-            {readiness?.database === "up" ? "● Up" : "● Down"}
+            <span className="pulse" style={{ background: "currentColor" }} />
+            {readiness?.database === "up" ? "Connected" : "Down"}
           </div>
           <div className="stat-label">Database</div>
         </div>
         <div className="stat-card">
           <div
-            className={`stat-value ${readiness?.status === "ready" ? "stat-green" : "stat-amber"}`}
+            className={`health-pill ${readiness?.status === "ready" ? "stat-green" : "stat-amber"}`}
           >
+            <span className="pulse" style={{ background: "currentColor" }} />
             {readiness?.status ?? "unknown"}
           </div>
           <div className="stat-label">Readiness</div>

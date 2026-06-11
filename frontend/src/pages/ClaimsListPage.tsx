@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  CircleCheckBig,
+  CircleX,
+  Files,
+  Loader,
+  Plus,
+  Search,
+} from "lucide-react";
 import { listClaims } from "../api/endpoints";
 import type { Claim, ClaimStatus } from "../api/types";
+import { DonutChart } from "../components/DonutChart";
 import { StatusBadge } from "../components/StatusBadge";
 
 const ALL_STATUSES: (ClaimStatus | "ALL")[] = [
@@ -65,21 +74,46 @@ export function ClaimsListPage() {
         (c) => c.status === "APPROVED" || c.status === "PAYOUT",
       ).length,
       rejected: claims.filter((c) => c.status === "REJECTED").length,
+      exposure: claims
+        .filter((c) => c.status !== "REJECTED")
+        .reduce((sum, c) => sum + c.claim_amount, 0),
     }),
     [claims],
   );
 
-  if (loading) return <div className="page-loading">Loading claims…</div>;
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <div>
+            <h1>Claims</h1>
+            <p className="page-subtitle">Loading your workspace…</p>
+          </div>
+        </div>
+        <div className="stat-grid">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton skeleton-stat" />
+          ))}
+        </div>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="skeleton skeleton-row" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <h1>Claims</h1>
-          <p className="page-subtitle">Track and manage insurance claims</p>
+          <p className="page-subtitle">
+            Track and manage insurance claims across the full lifecycle
+          </p>
         </div>
         <Link to="/claims/new" className="btn btn-primary">
-          + File New Claim
+          <Plus size={16} />
+          File New Claim
         </Link>
       </div>
 
@@ -87,33 +121,100 @@ export function ClaimsListPage() {
 
       <div className="stat-grid">
         <div className="stat-card">
-          <div className="stat-value">{stats.total}</div>
+          <div className="stat-head">
+            <div className="stat-value">{stats.total}</div>
+            <div className="stat-icon stat-icon-blue">
+              <Files size={17} />
+            </div>
+          </div>
           <div className="stat-label">Total claims</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value stat-blue">{stats.active}</div>
+          <div className="stat-head">
+            <div className="stat-value stat-blue">{stats.active}</div>
+            <div className="stat-icon stat-icon-amber">
+              <Loader size={17} />
+            </div>
+          </div>
           <div className="stat-label">In progress</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value stat-green">{stats.approved}</div>
+          <div className="stat-head">
+            <div className="stat-value stat-green">{stats.approved}</div>
+            <div className="stat-icon stat-icon-green">
+              <CircleCheckBig size={17} />
+            </div>
+          </div>
           <div className="stat-label">Approved / Paid</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value stat-red">{stats.rejected}</div>
+          <div className="stat-head">
+            <div className="stat-value stat-red">{stats.rejected}</div>
+            <div className="stat-icon stat-icon-red">
+              <CircleX size={17} />
+            </div>
+          </div>
           <div className="stat-label">Rejected</div>
         </div>
       </div>
 
+      {claims.length > 0 && (
+        <div className="chart-row">
+          <div className="card" style={{ marginBottom: 0 }}>
+            <h3>Pipeline distribution</h3>
+            <DonutChart
+              centerLabel={String(stats.total)}
+              centerSub="claims"
+              segments={[
+                {
+                  label: "In progress",
+                  value: stats.active,
+                  color: "var(--blue)",
+                },
+                {
+                  label: "Approved / Paid",
+                  value: stats.approved,
+                  color: "var(--green)",
+                },
+                {
+                  label: "Rejected",
+                  value: stats.rejected,
+                  color: "var(--red)",
+                },
+              ]}
+            />
+          </div>
+          <div className="card" style={{ marginBottom: 0 }}>
+            <h3>Open exposure</h3>
+            <div className="stat-value" style={{ fontSize: 36 }}>
+              {formatINR(stats.exposure)}
+            </div>
+            <div className="stat-label">
+              Combined value of all non-rejected claims
+            </div>
+            <p className="muted small" style={{ marginTop: 14 }}>
+              Exposure is the total amount the insurer could be liable for if
+              every open claim were approved at full value.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="toolbar">
-        <input
-          className="search-input"
-          placeholder="Search policy, vehicle, or city…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="search-wrap">
+          <Search size={15} />
+          <input
+            className="search-input"
+            placeholder="Search policy, vehicle, or city…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as ClaimStatus | "ALL")}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as ClaimStatus | "ALL")
+          }
         >
           {ALL_STATUSES.map((s) => (
             <option key={s} value={s}>
