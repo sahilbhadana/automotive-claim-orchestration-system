@@ -6,6 +6,7 @@ import { Protected } from "./components/Protected";
 import { ClaimDetailPage } from "./pages/ClaimDetailPage";
 import { ClaimsListPage } from "./pages/ClaimsListPage";
 import { DlqPage } from "./pages/DlqPage";
+import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NewClaimPage } from "./pages/NewClaimPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -27,7 +28,7 @@ export default function App() {
               </Protected>
             }
           >
-            <Route path="/" element={<Navigate to="/claims" replace />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/claims" element={<ClaimsListPage />} />
             <Route path="/claims/new" element={<NewClaimPage />} />
             <Route path="/claims/:claimId" element={<ClaimDetailPage />} />

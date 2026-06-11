@@ -4,6 +4,7 @@ import {
   Banknote,
   FilePlus2,
   Files,
+  House,
   LogOut,
   ShieldCheck,
   TriangleAlert,
@@ -15,15 +16,16 @@ interface NavItem {
   label: string;
   icon: typeof Files;
   roles: string[];
-  section: string;
+  end?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/claims", label: "Claims", icon: Files, roles: ["customer", "adjuster", "supervisor", "admin"], section: "Workspace" },
-  { to: "/claims/new", label: "File a Claim", icon: FilePlus2, roles: ["customer", "adjuster", "supervisor", "admin"], section: "Workspace" },
-  { to: "/settlements", label: "Settlements", icon: Banknote, roles: ["adjuster", "supervisor", "admin"], section: "Workspace" },
-  { to: "/admin/dlq", label: "Dead-Letter Queue", icon: TriangleAlert, roles: ["supervisor", "admin"], section: "Operations" },
-  { to: "/admin/system", label: "System Health", icon: Activity, roles: ["admin"], section: "Operations" },
+  { to: "/", label: "Home", icon: House, roles: ["customer", "adjuster", "supervisor", "admin"], end: true },
+  { to: "/claims", label: "Claims", icon: Files, roles: ["customer", "adjuster", "supervisor", "admin"], end: true },
+  { to: "/claims/new", label: "New Claim", icon: FilePlus2, roles: ["customer", "adjuster", "supervisor", "admin"] },
+  { to: "/settlements", label: "Settlements", icon: Banknote, roles: ["adjuster", "supervisor", "admin"] },
+  { to: "/admin/dlq", label: "DLQ", icon: TriangleAlert, roles: ["supervisor", "admin"] },
+  { to: "/admin/system", label: "Health", icon: Activity, roles: ["admin"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -45,65 +47,58 @@ export function Layout() {
   const visibleItems = NAV_ITEMS.filter(
     (item) => user && item.roles.includes(user.role),
   );
-  const sections = [...new Set(visibleItems.map((i) => i.section))];
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <Link to="/" className="sidebar-brand">
-          <div className="brand-logo">
-            <ShieldCheck size={17} />
-          </div>
-          <div>
+      <header className="topbar-wrap">
+        <div className="topbar">
+          <Link to="/" className="topbar-brand">
+            <div className="brand-logo">
+              <ShieldCheck size={17} />
+            </div>
             <span className="brand-name">ClaimFlow</span>
-            <span className="brand-tag">Claims Platform</span>
-          </div>
-        </Link>
-        <nav className="sidebar-nav">
-          {sections.map((section) => (
-            <div key={section}>
-              <div className="nav-section">{section}</div>
-              {visibleItems
-                .filter((i) => i.section === section)
-                .map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      end={item.to === "/claims"}
-                      className={({ isActive }) =>
-                        `nav-link${isActive ? " nav-link-active" : ""}`
-                      }
-                    >
-                      <Icon size={16} />
-                      {item.label}
-                    </NavLink>
-                  );
-                })}
-            </div>
-          ))}
-        </nav>
-        <div className="sidebar-footer">
-          {user && (
-            <div className="user-card">
-              <div className="user-avatar">
-                {user.full_name.charAt(0).toUpperCase()}
+          </Link>
+          <nav className="topbar-nav">
+            {visibleItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `nav-link${isActive ? " nav-link-active" : ""}`
+                  }
+                >
+                  <Icon size={15} />
+                  <span className="nav-label">{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
+          <div className="topbar-user">
+            {user && (
+              <div className="topbar-identity" title={user.full_name}>
+                <div className="user-avatar">
+                  {user.full_name.charAt(0).toUpperCase()}
+                </div>
+                <div className="topbar-identity-text">
+                  <span className="user-name">{user.full_name}</span>
+                  <span className="user-role">{ROLE_LABELS[user.role]}</span>
+                </div>
               </div>
-              <div className="user-info">
-                <div className="user-name">{user.full_name}</div>
-                <div className="user-role">{ROLE_LABELS[user.role]}</div>
-              </div>
-            </div>
-          )}
-          <div className="sidebar-actions">
-            <button className="btn btn-ghost" onClick={handleLogout}>
+            )}
+            <button
+              className="btn btn-ghost btn-small"
+              onClick={handleLogout}
+              title="Sign out"
+            >
               <LogOut size={14} />
-              Sign out
+              <span className="nav-label">Sign out</span>
             </button>
           </div>
         </div>
-      </aside>
+      </header>
       <main className="main-content">
         <Outlet />
       </main>
