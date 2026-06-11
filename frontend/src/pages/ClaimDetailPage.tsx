@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Check, Circle } from "lucide-react";
+import { Check, Circle, Download } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
   analyzeFraud,
   assignAdjuster,
+  downloadDocument,
   executeWorkflowStep,
   getClaim,
   getWorkflowState,
@@ -303,10 +304,13 @@ function DocumentsTab({
   onError: (err: unknown) => void;
   onNotice: (msg: string) => void;
 }) {
+  const { user } = useAuth();
   const [docType, setDocType] = useState<DocumentType>("ACCIDENT_PHOTO");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+  const canUpload = user?.role === "customer";
   const uploadedTypes = new Set(documents.map((d) => d.document_type));
   const requiredTypes: DocumentType[] = ["ACCIDENT_PHOTO", "FIR", "RC"];
 
@@ -326,6 +330,17 @@ function DocumentsTab({
     }
   };
 
+  const handleDownload = async (doc: ClaimDocument) => {
+    setDownloadingId(doc.id);
+    try {
+      await downloadDocument(claimId, doc.id, doc.original_filename);
+    } catch (err) {
+      onError(err);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   return (
     <div className="card">
       <h3>Required documents</h3>
@@ -341,25 +356,32 @@ function DocumentsTab({
         ))}
       </div>
 
-      <form onSubmit={handleUpload} className="upload-form">
-        <select
-          value={docType}
-          onChange={(e) => setDocType(e.target.value as DocumentType)}
-        >
-          {requiredTypes.map((t) => (
-            <option key={t} value={t}>
-              {DOC_LABELS[t]}
-            </option>
-          ))}
-        </select>
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-        <button className="btn btn-primary" disabled={!file || busy}>
-          {busy ? "Uploading…" : "Upload"}
-        </button>
-      </form>
+      {canUpload ? (
+        <form onSubmit={handleUpload} className="upload-form">
+          <select
+            value={docType}
+            onChange={(e) => setDocType(e.target.value as DocumentType)}
+          >
+            {requiredTypes.map((t) => (
+              <option key={t} value={t}>
+                {DOC_LABELS[t]}
+              </option>
+            ))}
+          </select>
+          <input
+            type="file"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+          <button className="btn btn-primary" disabled={!file || busy}>
+            {busy ? "Uploading…" : "Upload"}
+          </button>
+        </form>
+      ) : (
+        <p className="muted small">
+          Documents are uploaded by the claimant. As claims staff you can
+          review and download them below.
+        </p>
+      )}
 
       {documents.length > 0 && (
         <div className="table-wrap">
@@ -370,6 +392,7 @@ function DocumentsTab({
                 <th>Filename</th>
                 <th>Size</th>
                 <th>Uploaded</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -379,6 +402,16 @@ function DocumentsTab({
                   <td className="mono">{doc.original_filename}</td>
                   <td>{(doc.size_bytes / 1024).toFixed(1)} KB</td>
                   <td>{new Date(doc.created_at).toLocaleString()}</td>
+                  <td>
+                    <button
+                      className="btn btn-ghost btn-small"
+                      onClick={() => handleDownload(doc)}
+                      disabled={downloadingId === doc.id}
+                    >
+                      <Download size={13} />
+                      {downloadingId === doc.id ? "Saving…" : "Download"}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

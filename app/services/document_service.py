@@ -106,6 +106,18 @@ def store_claim_document(
     return document
 
 
+def get_claim_document_by_id(
+    session: Session,
+    claim_id: uuid.UUID,
+    document_id: uuid.UUID,
+) -> ClaimDocument | None:
+    statement = select(ClaimDocument).where(
+        ClaimDocument.id == document_id,
+        ClaimDocument.claim_id == claim_id,
+    )
+    return session.scalars(statement).first()
+
+
 def list_claim_documents(session: Session, claim_id: uuid.UUID) -> list[ClaimDocument]:
     statement = (
         select(ClaimDocument)

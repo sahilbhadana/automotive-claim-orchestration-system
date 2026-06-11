@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, getToken, ApiError } from "./client";
 import type {
   Adjuster,
   AdjusterAssignment,
@@ -68,6 +68,38 @@ export const uploadDocument = (
   form.append("document_type", documentType);
   form.append("file", file);
   return api.post<ClaimDocument>(`/claims/${claimId}/documents`, form);
+};
+
+// Fetches the file with the auth header, then triggers a browser save.
+export const downloadDocument = async (
+  claimId: string,
+  documentId: string,
+  filename: string,
+): Promise<void> => {
+  const token = getToken();
+  const response = await fetch(
+    `/api/v1/claims/${claimId}/documents/${documentId}/download`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+  );
+  if (!response.ok) {
+    let detail = `Download failed (${response.status})`;
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") detail = body.detail;
+    } catch {
+      // non-JSON error body; keep generic message
+    }
+    throw new ApiError(response.status, detail);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 };
 
 // --- Fraud ---

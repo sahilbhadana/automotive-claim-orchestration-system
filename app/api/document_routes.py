@@ -1,3 +1,4 @@
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -6,13 +7,16 @@ from fastapi import Form
 from fastapi import HTTPException
 from fastapi import UploadFile
 from fastapi import status
+from fastapi.responses import FileResponse
 
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.models.document import DocumentType
+from app.models.user import UserRole
 from app.schemas.document import ClaimDocumentRead
 from app.services.claim_service import get_claim_by_id
 from app.services.document_service import DocumentValidationError
+from app.services.document_service import get_claim_document_by_id
 from app.services.document_service import list_claim_documents
 from app.services.document_service import store_claim_document
 
@@ -28,6 +32,13 @@ async def upload_claim_document(
     file: UploadFile = File(...),
     current_user: CurrentUser,
 ) -> ClaimDocumentRead:
+    # Only the claimant supplies evidence; staff review, they don't upload.
+    if current_user.role != UserRole.CUSTOMER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only customers can upload claim documents",
+        )
+
     claim = get_claim_by_id(session, claim_id)
     if claim is None:
         raise HTTPException(
@@ -70,3 +81,31 @@ async def list_claim_documents_endpoint(
 
     documents = list_claim_documents(session, claim_id)
     return [ClaimDocumentRead.model_validate(document) for document in documents]
+
+
+@router.get("/{document_id}/download")
+async def download_claim_document(
+    claim_id: UUID,
+    document_id: UUID,
+    session: DatabaseSession,
+    current_user: CurrentUser,
+) -> FileResponse:
+    document = get_claim_document_by_id(session, claim_id, document_id)
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    file_path = Path(document.storage_path)
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Document file is missing from storage",
+        )
+
+    return FileResponse(
+        path=file_path,
+        media_type=document.content_type,
+        filename=document.original_filename,
+    )
