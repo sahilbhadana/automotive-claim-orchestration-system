@@ -234,6 +234,28 @@ curl http://localhost:8000/api/v1/ready
 
 Register, log in, and create your first claim!
 
+### 5. Run the Web UI (optional)
+
+A full React + TypeScript frontend lives in [`frontend/`](frontend/):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173** — the dev server proxies `/api` to the backend on port 8000, so no CORS configuration is needed.
+
+The UI includes:
+- **Login / register** with role selection (customer, adjuster, supervisor, admin)
+- **Claims dashboard** with search, status filters, and summary stats
+- **Claim detail** — workflow stepper, one-click state transitions, document upload checklist (photos / FIR / RC), fraud analysis with risk scoring, settlement initiation, and full audit timeline
+- **Settlements view** (adjuster+) — payout tracking with admin retry / reverse actions
+- **Dead-Letter Queue console** (supervisor/admin) — requeue, schedule exponential-backoff retry, or dismiss failed tasks
+- **System Health dashboard** (admin) — live readiness probes and Prometheus business metrics, auto-refreshing every 15s
+
+Build for production with `npm run build` (outputs static assets to `frontend/dist/`).
+
 ---
 
 ## 📊 Full API Reference

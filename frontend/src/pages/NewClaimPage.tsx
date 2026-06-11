@@ -1,0 +1,143 @@
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { createClaim } from "../api/endpoints";
+
+export function NewClaimPage() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    policy_number: "",
+    vehicle_number: "",
+    incident_date: "",
+    incident_city: "",
+    claim_amount: "",
+    description: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const update = (key: keyof typeof form) => (value: string) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const claim = await createClaim({
+        policy_number: form.policy_number,
+        vehicle_number: form.vehicle_number,
+        incident_date: form.incident_date,
+        incident_city: form.incident_city,
+        claim_amount: Number(form.claim_amount),
+        description: form.description,
+      });
+      navigate(`/claims/${claim.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create claim");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="page page-narrow">
+      <div className="page-header">
+        <div>
+          <h1>File a New Claim</h1>
+          <p className="page-subtitle">
+            Submit the incident details to start the claims workflow
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="card form-card">
+        {error && <div className="alert alert-error">{error}</div>}
+
+        <div className="form-row">
+          <label className="field">
+            <span>Policy number</span>
+            <input
+              value={form.policy_number}
+              onChange={(e) => update("policy_number")(e.target.value)}
+              required
+              minLength={3}
+              placeholder="POL-2026-001234"
+            />
+          </label>
+          <label className="field">
+            <span>Vehicle number</span>
+            <input
+              value={form.vehicle_number}
+              onChange={(e) => update("vehicle_number")(e.target.value)}
+              required
+              minLength={3}
+              placeholder="GJ01AA9999"
+            />
+          </label>
+        </div>
+
+        <div className="form-row">
+          <label className="field">
+            <span>Incident date</span>
+            <input
+              type="date"
+              value={form.incident_date}
+              onChange={(e) => update("incident_date")(e.target.value)}
+              required
+              max={new Date().toISOString().split("T")[0]}
+            />
+          </label>
+          <label className="field">
+            <span>Incident city</span>
+            <input
+              value={form.incident_city}
+              onChange={(e) => update("incident_city")(e.target.value)}
+              required
+              minLength={2}
+              placeholder="Ahmedabad"
+            />
+          </label>
+        </div>
+
+        <label className="field">
+          <span>Claim amount (₹)</span>
+          <input
+            type="number"
+            value={form.claim_amount}
+            onChange={(e) => update("claim_amount")(e.target.value)}
+            required
+            min={1}
+            step="0.01"
+            placeholder="75000"
+          />
+        </label>
+
+        <label className="field">
+          <span>Description of incident</span>
+          <textarea
+            value={form.description}
+            onChange={(e) => update("description")(e.target.value)}
+            required
+            minLength={10}
+            maxLength={1000}
+            rows={4}
+            placeholder="Describe what happened (minimum 10 characters)…"
+          />
+        </label>
+
+        <div className="form-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => navigate("/claims")}
+          >
+            Cancel
+          </button>
+          <button className="btn btn-primary" disabled={busy}>
+            {busy ? "Submitting…" : "Submit Claim"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
