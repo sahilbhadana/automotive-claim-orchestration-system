@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import type { ClaimStatus } from "../api/types";
 
 const PIPELINE: ClaimStatus[] = [
@@ -42,7 +43,9 @@ export function WorkflowStepper({ status }: { status: ClaimStatus }) {
           i < currentIndex ? "done" : i === currentIndex ? "active" : "todo";
         return (
           <div key={step} className={`step step-${state}`}>
-            <div className="step-dot">{state === "done" ? "✓" : i + 1}</div>
+            <div className="step-dot">
+              {state === "done" ? <Check size={13} /> : i + 1}
+            </div>
             <div className="step-label">{LABELS[step]}</div>
             {i < PIPELINE.length - 1 && <div className="step-line" />}
           </div>

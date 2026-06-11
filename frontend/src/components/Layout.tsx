@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -6,9 +5,7 @@ import {
   FilePlus2,
   Files,
   LogOut,
-  Moon,
   ShieldCheck,
-  Sun,
   TriangleAlert,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
@@ -36,23 +33,9 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Administrator",
 };
 
-const THEME_KEY = "claimflow_theme";
-
-function applyTheme(theme: string) {
-  document.documentElement.dataset.theme = theme;
-}
-
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem(THEME_KEY) ?? "dark",
-  );
-
-  useEffect(() => {
-    applyTheme(theme);
-    localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
 
   const handleLogout = () => {
     logout();
@@ -69,7 +52,7 @@ export function Layout() {
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="brand-logo">
-            <ShieldCheck size={20} />
+            <ShieldCheck size={17} />
           </div>
           <div>
             <span className="brand-name">ClaimFlow</span>
@@ -93,7 +76,7 @@ export function Layout() {
                         `nav-link${isActive ? " nav-link-active" : ""}`
                       }
                     >
-                      <Icon size={17} />
+                      <Icon size={16} />
                       {item.label}
                     </NavLink>
                   );
@@ -114,15 +97,8 @@ export function Layout() {
             </div>
           )}
           <div className="sidebar-actions">
-            <button
-              className="btn btn-ghost"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              title="Toggle theme"
-            >
-              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
             <button className="btn btn-ghost" onClick={handleLogout}>
-              <LogOut size={15} />
+              <LogOut size={14} />
               Sign out
             </button>
           </div>

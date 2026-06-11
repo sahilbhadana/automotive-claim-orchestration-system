@@ -43,9 +43,11 @@ export function NewClaimPage() {
     <div className="page page-narrow">
       <div className="page-header">
         <div>
+          <div className="eyebrow">Workspace</div>
           <h1>File a New Claim</h1>
           <p className="page-subtitle">
-            Submit the incident details to start the claims workflow
+            First notice of loss. Once submitted, the claim enters document
+            verification and your adjuster team is notified.
           </p>
         </div>
       </div>

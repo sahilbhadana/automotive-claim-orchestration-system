@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  CircleCheckBig,
-  CircleX,
-  Files,
-  Loader,
-  Plus,
-  Search,
-} from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { listClaims } from "../api/endpoints";
 import type { Claim, ClaimStatus } from "../api/types";
 import { DonutChart } from "../components/DonutChart";
@@ -106,55 +99,37 @@ export function ClaimsListPage() {
     <div className="page">
       <div className="page-header">
         <div>
+          <div className="eyebrow">Workspace</div>
           <h1>Claims</h1>
           <p className="page-subtitle">
-            Track and manage insurance claims across the full lifecycle
+            Every claim in your book, from first notice of loss to settled
+            payout.
           </p>
         </div>
         <Link to="/claims/new" className="btn btn-primary">
-          <Plus size={16} />
+          <Plus size={15} />
           File New Claim
         </Link>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-head">
-            <div className="stat-value">{stats.total}</div>
-            <div className="stat-icon stat-icon-blue">
-              <Files size={17} />
-            </div>
-          </div>
+      <div className="stat-strip">
+        <div className="stat-cell">
           <div className="stat-label">Total claims</div>
+          <div className="stat-value">{stats.total}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-head">
-            <div className="stat-value stat-blue">{stats.active}</div>
-            <div className="stat-icon stat-icon-amber">
-              <Loader size={17} />
-            </div>
-          </div>
-          <div className="stat-label">In progress</div>
+        <div className="stat-cell">
+          <div className="stat-label">In review</div>
+          <div className="stat-value">{stats.active}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-head">
-            <div className="stat-value stat-green">{stats.approved}</div>
-            <div className="stat-icon stat-icon-green">
-              <CircleCheckBig size={17} />
-            </div>
-          </div>
-          <div className="stat-label">Approved / Paid</div>
+        <div className="stat-cell">
+          <div className="stat-label">Approved &amp; paid</div>
+          <div className="stat-value stat-green">{stats.approved}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-head">
-            <div className="stat-value stat-red">{stats.rejected}</div>
-            <div className="stat-icon stat-icon-red">
-              <CircleX size={17} />
-            </div>
-          </div>
+        <div className="stat-cell">
           <div className="stat-label">Rejected</div>
+          <div className="stat-value stat-red">{stats.rejected}</div>
         </div>
       </div>
 
@@ -167,34 +142,31 @@ export function ClaimsListPage() {
               centerSub="claims"
               segments={[
                 {
-                  label: "In progress",
+                  label: "In review",
                   value: stats.active,
-                  color: "var(--blue)",
+                  color: "var(--info)",
                 },
                 {
-                  label: "Approved / Paid",
+                  label: "Approved & paid",
                   value: stats.approved,
-                  color: "var(--green)",
+                  color: "var(--ok)",
                 },
                 {
                   label: "Rejected",
                   value: stats.rejected,
-                  color: "var(--red)",
+                  color: "var(--err)",
                 },
               ]}
             />
           </div>
           <div className="card" style={{ marginBottom: 0 }}>
             <h3>Open exposure</h3>
-            <div className="stat-value" style={{ fontSize: 36 }}>
+            <div className="stat-value" style={{ fontSize: 40 }}>
               {formatINR(stats.exposure)}
             </div>
-            <div className="stat-label">
-              Combined value of all non-rejected claims
-            </div>
-            <p className="muted small" style={{ marginTop: 14 }}>
-              Exposure is the total amount the insurer could be liable for if
-              every open claim were approved at full value.
+            <p className="muted" style={{ marginTop: 12, maxWidth: 420 }}>
+              The amount you would pay if every open claim settled at full
+              value today. Rejected claims are excluded.
             </p>
           </div>
         </div>

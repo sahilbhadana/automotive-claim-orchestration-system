@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Check, Circle } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
   analyzeFraud,
@@ -334,7 +335,7 @@ function DocumentsTab({
             key={t}
             className={`doc-check-item${uploadedTypes.has(t) ? " is-done" : ""}`}
           >
-            <span>{uploadedTypes.has(t) ? "✓" : "○"}</span>
+            {uploadedTypes.has(t) ? <Check size={13} /> : <Circle size={11} />}
             {DOC_LABELS[t]}
           </div>
         ))}

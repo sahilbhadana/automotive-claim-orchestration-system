@@ -69,13 +69,15 @@ export function DlqPage() {
     <div className="page">
       <div className="page-header">
         <div>
+          <div className="eyebrow">Operations</div>
           <h1>Dead-Letter Queue</h1>
           <p className="page-subtitle">
-            Failed background tasks awaiting retry or operator intervention
+            Background tasks that exhausted their retries. Nothing here is
+            lost — requeue, reschedule, or dismiss with full context.
           </p>
         </div>
         <button className="btn btn-ghost" onClick={load}>
-          ↻ Refresh
+          Refresh
         </button>
       </div>
 
@@ -121,8 +123,8 @@ export function DlqPage() {
 
       {tasks.length === 0 ? (
         <div className="empty-state">
-          <h2>Queue is clear 🎉</h2>
-          <p>No failed tasks match this filter.</p>
+          <h2>Queue is clear</h2>
+          <p>No failed tasks match this filter. That's the goal.</p>
         </div>
       ) : (
         <div className="dlq-list">

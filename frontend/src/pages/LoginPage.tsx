@@ -1,28 +1,26 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Banknote,
-  GitBranch,
-  ShieldCheck,
-  Siren,
-} from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
+
+const METRICS = [
+  { value: "9", label: "workflow stages, enforced" },
+  { value: "6", label: "fraud rule families" },
+  { value: "100%", label: "of actions audit-logged" },
+];
 
 const FEATURES = [
   {
-    icon: GitBranch,
-    title: "9-stage claim workflow",
-    desc: "Guided state machine from intake to payout — nothing falls through.",
+    title: "State-machine workflow.",
+    desc: "Claims move intake → verification → fraud → payout. Skipped steps are rejected at the API.",
   },
   {
-    icon: Siren,
-    title: "Real-time fraud scoring",
-    desc: "Rule-based risk engine flags duplicates, patterns, and high-risk garages.",
+    title: "Fraud scoring before approval.",
+    desc: "Duplicate vehicles, repeat incidents, inflated estimates, and flagged garages — scored on every claim.",
   },
   {
-    icon: Banknote,
-    title: "Resilient settlements",
-    desc: "Automatic retries with exponential backoff and full audit trails.",
+    title: "Payouts that survive failure.",
+    desc: "Failed transfers retry with exponential backoff. Exhausted retries land in a dead-letter queue, never lost.",
   },
 ];
 
@@ -31,32 +29,37 @@ export function AuthHero() {
     <div className="auth-hero">
       <div className="auth-hero-content">
         <div className="brand-logo">
-          <ShieldCheck size={26} />
+          <ShieldCheck size={20} />
         </div>
         <h2>
-          Insurance claims,
+          Settle motor claims in days,
           <br />
-          <span className="gradient-text">orchestrated end to end.</span>
+          <span className="accent-text">not weeks.</span>
         </h2>
         <p>
-          ClaimFlow automates the full automotive claim lifecycle — intake,
+          ClaimFlow runs the full automotive claim lifecycle — intake, document
           verification, fraud analysis, adjuster assignment, and payout — on a
-          production-grade event-driven platform.
+          single audited workflow engine.
         </p>
-        {FEATURES.map((f) => {
-          const Icon = f.icon;
-          return (
-            <div key={f.title} className="auth-feature">
-              <div className="auth-feature-icon">
-                <Icon size={18} />
-              </div>
-              <div>
-                <div className="auth-feature-title">{f.title}</div>
-                <div className="auth-feature-desc">{f.desc}</div>
-              </div>
+        <div className="auth-metrics">
+          {METRICS.map((m) => (
+            <div key={m.label} className="auth-metric">
+              <div className="auth-metric-value">{m.value}</div>
+              <div className="auth-metric-label">{m.label}</div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+        {FEATURES.map((f) => (
+          <div key={f.title} className="auth-feature">
+            <span className="auth-feature-icon">
+              <ArrowRight size={14} />
+            </span>
+            <span>
+              <span className="auth-feature-title">{f.title}</span>
+              <span className="auth-feature-desc">{f.desc}</span>
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -94,8 +97,8 @@ export function LoginPage() {
       <AuthHero />
       <div className="auth-panel">
         <div className="auth-card">
-          <h1>Welcome back</h1>
-          <p className="auth-subtitle">Sign in to your ClaimFlow workspace</p>
+          <h1>Sign in</h1>
+          <p className="auth-subtitle">Pick up where your team left off.</p>
           <form onSubmit={handleSubmit}>
             {error && <div className="alert alert-error">{error}</div>}
             <label className="field">

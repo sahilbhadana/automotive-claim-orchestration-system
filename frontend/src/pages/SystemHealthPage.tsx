@@ -61,13 +61,14 @@ export function SystemHealthPage() {
     <div className="page">
       <div className="page-header">
         <div>
+          <div className="eyebrow">Operations</div>
           <h1>System Health</h1>
           <p className="page-subtitle">
-            Live service status and Prometheus metrics · auto-refreshes every 15s
+            Live probes and Prometheus counters, sampled every 15 seconds.
           </p>
         </div>
         <button className="btn btn-ghost" onClick={load}>
-          ↻ Refresh
+          Refresh
         </button>
       </div>
 

@@ -27,8 +27,8 @@ export function DonutChart({
           cy="75"
           r={radius}
           fill="none"
-          stroke="var(--surface-hover)"
-          strokeWidth="16"
+          stroke="var(--surface-raised)"
+          strokeWidth="12"
         />
         {total > 0 &&
           segments
@@ -44,7 +44,7 @@ export function DonutChart({
                   r={radius}
                   fill="none"
                   stroke={s.color}
-                  strokeWidth="16"
+                  strokeWidth="12"
                   strokeLinecap="butt"
                   strokeDasharray={`${dash} ${circumference - dash}`}
                   strokeDashoffset={-offset}

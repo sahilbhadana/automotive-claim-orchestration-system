@@ -101,11 +101,14 @@ export function SettlementsPage() {
     <div className="page">
       <div className="page-header">
         <div>
+          <div className="eyebrow">Workspace</div>
           <h1>Settlements</h1>
-          <p className="page-subtitle">Payout tracking across all claims</p>
+          <p className="page-subtitle">
+            Every payout across the book — completed, in flight, and failed.
+          </p>
         </div>
         <button className="btn btn-ghost" onClick={load}>
-          ↻ Refresh
+          Refresh
         </button>
       </div>
 
