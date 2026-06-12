@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Activity,
   Banknote,
+  BookOpen,
   FilePlus2,
   Files,
   House,
@@ -23,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Home", icon: House, roles: ["customer", "adjuster", "supervisor", "admin"], end: true },
   { to: "/claims", label: "Claims", icon: Files, roles: ["customer", "adjuster", "supervisor", "admin"], end: true },
   { to: "/claims/new", label: "New Claim", icon: FilePlus2, roles: ["customer", "adjuster", "supervisor", "admin"] },
+  { to: "/guide", label: "Guide", icon: BookOpen, roles: ["customer", "adjuster", "supervisor", "admin"] },
   { to: "/settlements", label: "Settlements", icon: Banknote, roles: ["adjuster", "supervisor", "admin"] },
   { to: "/admin/dlq", label: "DLQ", icon: TriangleAlert, roles: ["supervisor", "admin"] },
   { to: "/admin/system", label: "Health", icon: Activity, roles: ["admin"] },

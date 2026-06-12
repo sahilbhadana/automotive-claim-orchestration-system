@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createClaim } from "../api/endpoints";
 
 export function NewClaimPage() {
@@ -48,6 +48,11 @@ export function NewClaimPage() {
           <p className="page-subtitle">
             First notice of loss. Once submitted, the claim enters document
             verification and your adjuster team is notified.
+          </p>
+          <p className="have-ready">
+            Have ready: your policy number, vehicle registration, accident
+            photos, and the FIR copy for theft or major damage.{" "}
+            <Link to="/guide">See the full document list</Link>
           </p>
         </div>
       </div>

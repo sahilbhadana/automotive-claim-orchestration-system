@@ -289,6 +289,10 @@ export function HomePage() {
             <p className="faq-answer">{f.a}</p>
           </details>
         ))}
+        <p className="faq-more">
+          Want the full picture — documents, timelines, theft and third-party
+          cases? <Link to="/guide">Read the claim process guide</Link>
+        </p>
       </section>
 
       {/* ---- Final CTA ---- */}
@@ -315,6 +319,7 @@ export function HomePage() {
         <div className="home-footer-links">
           <Link to="/claims">Claims</Link>
           <Link to="/claims/new">File a claim</Link>
+          <Link to="/guide">Claim guide</Link>
           {(user?.role === "adjuster" ||
             user?.role === "supervisor" ||
             user?.role === "admin") && (
