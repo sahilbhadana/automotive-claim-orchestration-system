@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.authz import ensure_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.policy import PolicyCreate
@@ -20,6 +21,8 @@ router = APIRouter(prefix="/policies", tags=["policies"])
 async def create_policy_endpoint(
     payload: PolicyCreate, session: DatabaseSession, current_user: CurrentUser
 ) -> PolicyRead:
+    # Policy master data is managed by staff, never by customers.
+    ensure_staff(current_user)
     existing_policy = get_policy_by_number(session, payload.policy_number)
     if existing_policy is not None:
         raise HTTPException(
@@ -35,6 +38,8 @@ async def create_policy_endpoint(
 async def list_policies_endpoint(
     session: DatabaseSession, current_user: CurrentUser
 ) -> list[PolicyRead]:
+    # The full policy book is staff-only — it is other customers' PII.
+    ensure_staff(current_user)
     policies = list_policies(session)
     return [PolicyRead.model_validate(policy) for policy in policies]
 
@@ -43,6 +48,7 @@ async def list_policies_endpoint(
 async def get_policy_endpoint(
     policy_number: str, session: DatabaseSession, current_user: CurrentUser
 ) -> PolicyRead:
+    ensure_staff(current_user)
     policy = get_policy_by_number(session, policy_number)
     if policy is None:
         raise HTTPException(
@@ -58,5 +64,7 @@ async def validate_policy_endpoint(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> PolicyValidationResult:
+    # Coverage probing is an investigative tool, not a customer feature.
+    ensure_staff(current_user)
     policy = get_policy_by_number(session, payload.policy_number)
     return validate_policy_coverage(policy, payload)

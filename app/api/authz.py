@@ -45,6 +45,14 @@ def ensure_staff(user: User) -> None:
         )
 
 
+def ensure_admin(user: User) -> None:
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This action is restricted to administrators",
+        )
+
+
 def ensure_claimant_upload_access(user: User, claim: Claim) -> None:
     """Documents are supplied by the claim's owner, nobody else."""
     if user.role != UserRole.CUSTOMER:

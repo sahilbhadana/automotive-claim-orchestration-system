@@ -4,6 +4,8 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.authz import ensure_claim_view_access
+from app.api.authz import ensure_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.garage import GarageCreate
@@ -27,6 +29,7 @@ router = APIRouter(tags=["garages"])
 async def create_garage_endpoint(
     payload: GarageCreate, session: DatabaseSession, current_user: CurrentUser
 ) -> GarageRead:
+    ensure_staff(current_user)
     garage = create_garage(session, payload)
     return GarageRead.model_validate(garage)
 
@@ -35,6 +38,7 @@ async def create_garage_endpoint(
 async def list_garages_endpoint(
     session: DatabaseSession, current_user: CurrentUser
 ) -> list[GarageRead]:
+    ensure_staff(current_user)
     garages = list_garages(session)
     return [GarageRead.model_validate(garage) for garage in garages]
 
@@ -50,12 +54,9 @@ async def create_repair_estimate_endpoint(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> RepairEstimateRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    # Repair estimates are logged by staff against a claim they can see.
+    ensure_staff(current_user)
+    claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     try:
         estimate = create_repair_estimate(session, claim, payload)
@@ -74,12 +75,8 @@ async def create_repair_estimate_endpoint(
 async def list_repair_estimates_endpoint(
     claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> list[RepairEstimateRead]:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    # A claimant may see estimates on their own claim; staff see all.
+    ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     estimates = list_claim_repair_estimates(session, claim_id)
     return [RepairEstimateRead.model_validate(estimate) for estimate in estimates]
@@ -95,6 +92,8 @@ async def approve_repair_estimate_endpoint(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> RepairEstimateRead:
+    # Approving an estimate authorises spend — staff only.
+    ensure_staff(current_user)
     estimate = get_repair_estimate_by_id(session, estimate_id)
     if estimate is None:
         raise HTTPException(

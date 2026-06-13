@@ -10,16 +10,21 @@ from app.models.user import UserRole
 
 
 class UserRegister(BaseModel):
+    # Note: no role field. Public sign-ups are always created as
+    # customers; elevation is an admin-only operation.
     username: str = Field(min_length=3, max_length=50)
     email: EmailStr
     full_name: str = Field(min_length=2, max_length=120)
     password: str = Field(min_length=8, max_length=128)
-    role: UserRole
 
 
 class UserLogin(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     password: str = Field(min_length=8, max_length=128)
+
+
+class UserRoleUpdate(BaseModel):
+    role: UserRole
 
 
 class TokenRead(BaseModel):

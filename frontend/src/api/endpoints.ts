@@ -17,7 +17,6 @@ import type {
   Survey,
   TokenRead,
   User,
-  UserRole,
   WorkflowExecution,
   WorkflowState,
 } from "./types";
@@ -31,7 +30,6 @@ export const register = (payload: {
   email: string;
   full_name: string;
   password: string;
-  role: UserRole;
 }) => api.post<User>("/auth/register", payload);
 
 export const fetchProfile = () => api.get<User>("/auth/me");

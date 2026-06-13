@@ -3,11 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router as api_router
 from app.core.config import settings
+from app.core.config import validate_security
 from app.core.logging import configure_logging
+from app.db.session import SessionLocal
 from app.db.session import init_db
 from app.middleware.correlation_id import CorrelationIDMiddleware
 from app.middleware.rate_limiter import InMemoryRateLimiter
 from app.middleware.request_tracer import RequestTracerMiddleware
+from app.services.auth_service import ensure_bootstrap_admin
 from app.services.document_service import ensure_document_storage
 
 
@@ -16,6 +19,13 @@ def create_application() -> FastAPI:
         level="INFO",
         json_logs=(settings.app_env != "development"),
     )
+
+    # Refuse to start with an insecure configuration in production.
+    security_problems = validate_security(settings)
+    if security_problems:
+        raise RuntimeError(
+            "Insecure production configuration: " + "; ".join(security_problems)
+        )
 
     app = FastAPI(
         title=settings.app_name,
@@ -41,7 +51,7 @@ def create_application() -> FastAPI:
     # Middleware stack (outermost first)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=settings.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["X-Correlation-ID", "X-Request-ID", "X-RateLimit-Remaining"],
@@ -56,6 +66,11 @@ def create_application() -> FastAPI:
     def on_startup() -> None:
         ensure_document_storage()
         init_db()
+        session = SessionLocal()
+        try:
+            ensure_bootstrap_admin(session)
+        finally:
+            session.close()
 
     return app
 

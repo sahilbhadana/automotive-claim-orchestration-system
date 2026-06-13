@@ -47,6 +47,9 @@ def client(tmp_path_factory):
             session.close()
 
     app.dependency_overrides[get_db_session] = override_db_session
+    # Expose the session factory so fixtures can provision staff roles,
+    # which are no longer self-assignable through registration.
+    app.state.test_session_factory = TestSession
     storage_dir = tmp_path_factory.mktemp("doc_storage")
     with patch.object(settings, "document_storage_path", str(storage_dir)):
         yield TestClient(app, raise_server_exceptions=True)
@@ -54,7 +57,21 @@ def client(tmp_path_factory):
     test_engine.dispose()
 
 
-def _register_and_login(client, username: str, role: str) -> dict:
+def _promote(client, user_id: str, role: str) -> None:
+    """Grant a staff/admin role directly in the DB. Registration always
+    creates customers, so tests provision elevated roles out of band."""
+    from app.models.user import UserRole
+    from app.services.auth_service import set_user_role
+
+    factory = client.app.state.test_session_factory
+    session = factory()
+    try:
+        set_user_role(session, user_id, UserRole(role))
+    finally:
+        session.close()
+
+
+def _register_and_login(client, username: str, role: str = "customer") -> dict:
     register = client.post(
         "/api/v1/auth/register",
         json={
@@ -62,10 +79,13 @@ def _register_and_login(client, username: str, role: str) -> dict:
             "email": f"{username}@example.com",
             "full_name": username.replace(".", " ").title(),
             "password": "password123",
-            "role": role,
         },
     )
     assert register.status_code == 201, register.text
+    # Public registration is always a customer; the role claim a user
+    # sends is ignored. Elevate explicitly when a test needs staff.
+    assert register.json()["role"] == "customer"
+
     login = client.post(
         "/api/v1/auth/login",
         json={"username": username, "password": "password123"},
@@ -74,7 +94,10 @@ def _register_and_login(client, username: str, role: str) -> dict:
     token = login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     me = client.get("/api/v1/auth/me", headers=headers)
-    return {"headers": headers, "id": me.json()["id"]}
+    user_id = me.json()["id"]
+    if role != "customer":
+        _promote(client, user_id, role)
+    return {"headers": headers, "id": user_id}
 
 
 @pytest.fixture(scope="module")
@@ -233,3 +256,76 @@ class TestWorkflowAuthority:
             json={"status": "APPROVED"},
         )
         assert response.status_code == 403
+
+
+class TestPrivilegeEscalation:
+    def test_registration_cannot_self_assign_admin(self, client):
+        # Even sending role=admin, the created user is a customer.
+        resp = client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "sneaky.admin",
+                "email": "sneaky@example.com",
+                "full_name": "Sneaky Admin",
+                "password": "password123",
+                "role": "admin",
+            },
+        )
+        assert resp.status_code == 201
+        assert resp.json()["role"] == "customer"
+
+    def test_customer_cannot_elevate_roles(self, client, users):
+        resp = client.patch(
+            f"/api/v1/auth/users/{users['other']['id']}/role",
+            headers=users["owner"]["headers"],
+            json={"role": "admin"},
+        )
+        assert resp.status_code == 403
+
+    def test_admin_can_elevate_roles(self, client, users):
+        target = _register_and_login(client, "promote.me")
+        resp = client.patch(
+            f"/api/v1/auth/users/{target['id']}/role",
+            headers=users["admin"]["headers"],
+            json={"role": "adjuster"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["role"] == "adjuster"
+
+
+class TestSecondaryEndpointAuthz:
+    def test_customer_cannot_list_policies(self, client, users):
+        resp = client.get("/api/v1/policies", headers=users["owner"]["headers"])
+        assert resp.status_code == 403
+
+    def test_customer_cannot_create_policy(self, client, users):
+        resp = client.post(
+            "/api/v1/policies",
+            headers=users["owner"]["headers"],
+            json={
+                "policy_number": "POL-XYZ",
+                "insured_name": "Test Insured",
+                "vehicle_number": "GJ01AA0001",
+                "coverage_type": "COMPREHENSIVE",
+                "effective_date": "2026-01-01",
+                "expiry_date": "2027-01-01",
+            },
+        )
+        assert resp.status_code == 403
+
+    def test_customer_cannot_list_adjusters(self, client, users):
+        resp = client.get("/api/v1/adjusters", headers=users["owner"]["headers"])
+        assert resp.status_code == 403
+
+    def test_customer_cannot_dispatch_async_workflow(self, client, users, claim):
+        # The async path must enforce the same staff-only rule as the sync one.
+        resp = client.post(
+            f"/api/v1/claims/{claim['id']}/workflow/execute-async",
+            headers=users["owner"]["headers"],
+            json={"target_status": "DOCUMENT_VERIFICATION"},
+        )
+        assert resp.status_code == 403
+
+    def test_customer_cannot_read_metrics(self, client, users):
+        resp = client.get("/api/v1/metrics/summary", headers=users["owner"]["headers"])
+        assert resp.status_code == 403

@@ -124,6 +124,7 @@ class TestClaimValidation:
         response = client.get("/api/v1/dlq")
         assert response.status_code == 401
 
-    def test_metrics_endpoint_accessible(self, client):
+    def test_metrics_endpoint_requires_auth(self, client):
+        # Metrics now leak operational data, so they require an admin.
         response = client.get("/api/v1/metrics")
-        assert response.status_code == 200
+        assert response.status_code == 401

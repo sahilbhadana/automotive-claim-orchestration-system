@@ -1,9 +1,10 @@
 from uuid import UUID
 
 from fastapi import APIRouter
-from fastapi import HTTPException
 from fastapi import status
 
+from app.api.authz import ensure_claim_view_access
+from app.api.authz import ensure_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.notification import NotificationDeliveryRead
@@ -25,12 +26,9 @@ async def dispatch_claim_notification_endpoint(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> NotificationDeliveryRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    # Manual notification dispatch is an operational action for staff.
+    ensure_staff(current_user)
+    claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     result = dispatch_claim_notification(
         session=session,

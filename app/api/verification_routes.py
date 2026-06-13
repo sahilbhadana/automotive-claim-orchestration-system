@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.authz import ensure_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.verification import VerificationRequest
@@ -14,5 +15,8 @@ router = APIRouter(prefix="/verifications", tags=["verifications"])
 async def verify_vehicle_and_driver_endpoint(
     payload: VerificationRequest, session: DatabaseSession, current_user: CurrentUser
 ) -> VerificationResult:
+    # Verifying arbitrary policy/vehicle/owner data is an investigative
+    # tool — staff only, to prevent enumeration by customers.
+    ensure_staff(current_user)
     policy = get_policy_by_number(session, payload.policy_number)
     return verify_vehicle_and_driver(policy, payload)

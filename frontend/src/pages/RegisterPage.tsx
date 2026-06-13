@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { register } from "../api/endpoints";
-import type { UserRole } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { AuthHero } from "./LoginPage";
 
@@ -13,7 +12,6 @@ export function RegisterPage() {
     email: "",
     full_name: "",
     password: "",
-    role: "customer" as UserRole,
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -55,30 +53,16 @@ export function RegisterPage() {
                 placeholder="Jane Doe"
               />
             </label>
-            <div className="form-row">
-              <label className="field">
-                <span>Username</span>
-                <input
-                  value={form.username}
-                  onChange={(e) => update("username")(e.target.value)}
-                  required
-                  minLength={3}
-                  placeholder="jane.doe"
-                />
-              </label>
-              <label className="field">
-                <span>Role</span>
-                <select
-                  value={form.role}
-                  onChange={(e) => update("role")(e.target.value)}
-                >
-                  <option value="customer">Customer</option>
-                  <option value="adjuster">Adjuster</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="admin">Administrator</option>
-                </select>
-              </label>
-            </div>
+            <label className="field">
+              <span>Username</span>
+              <input
+                value={form.username}
+                onChange={(e) => update("username")(e.target.value)}
+                required
+                minLength={3}
+                placeholder="jane.doe"
+              />
+            </label>
             <label className="field">
               <span>Email</span>
               <input

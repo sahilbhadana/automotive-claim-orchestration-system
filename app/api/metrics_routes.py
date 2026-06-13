@@ -3,12 +3,20 @@ from __future__ import annotations
 from fastapi import APIRouter
 from fastapi import Response
 
+from app.api.authz import ensure_admin
+from app.api.dependencies import CurrentUser
+
 router = APIRouter(tags=["Observability"])
 
 
 @router.get("/metrics", include_in_schema=False)
-def prometheus_metrics() -> Response:
-    """Expose Prometheus metrics in text format."""
+def prometheus_metrics(current_user: CurrentUser) -> Response:
+    """Expose Prometheus metrics in text format.
+
+    Restricted to administrators: it leaks operational figures (claim
+    volumes, payout totals). Scrapers should authenticate with an admin
+    token or be confined to an internal network."""
+    ensure_admin(current_user)
     try:
         from prometheus_client import CONTENT_TYPE_LATEST
         from prometheus_client import generate_latest
@@ -25,8 +33,9 @@ def prometheus_metrics() -> Response:
 
 
 @router.get("/metrics/summary")
-def metrics_summary() -> dict:
+def metrics_summary(current_user: CurrentUser) -> dict:
     """Human-readable metric snapshot for dashboards and health checks."""
+    ensure_admin(current_user)
     try:
         from prometheus_client import REGISTRY
 

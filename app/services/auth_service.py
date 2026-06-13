@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.user import User
+from app.models.user import UserRole
 from app.schemas.auth import UserRegister
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -32,18 +33,58 @@ def register_user(session: Session, payload: UserRegister) -> User:
     if existing is not None:
         raise AuthenticationError("Username or email already exists")
 
+    # Public registration is always a customer. Staff/admin roles are
+    # granted by an administrator, never self-selected.
     user = User(
         username=payload.username,
         email=payload.email,
         full_name=payload.full_name,
         hashed_password=hash_password(payload.password),
-        role=payload.role,
+        role=UserRole.CUSTOMER,
         is_active=True,
     )
     session.add(user)
     session.commit()
     session.refresh(user)
     return user
+
+
+def set_user_role(session: Session, user_id: str, role: UserRole) -> User:
+    user = get_user_by_id(session, user_id)
+    if user is None:
+        raise AuthenticationError("User not found")
+    user.role = role
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+def ensure_bootstrap_admin(session: Session) -> User | None:
+    """Create the configured bootstrap administrator if it is set and does
+    not already exist. This provisions the first admin without exposing a
+    public path to the admin role."""
+    username = settings.bootstrap_admin_username
+    password = settings.bootstrap_admin_password
+    email = settings.bootstrap_admin_email
+    if not (username and password and email):
+        return None
+
+    existing = session.scalar(select(User).where(User.username == username))
+    if existing is not None:
+        return existing
+
+    admin = User(
+        username=username,
+        email=email,
+        full_name="Bootstrap Administrator",
+        hashed_password=hash_password(password),
+        role=UserRole.ADMIN,
+        is_active=True,
+    )
+    session.add(admin)
+    session.commit()
+    session.refresh(admin)
+    return admin
 
 
 def authenticate_user(session: Session, username: str, password: str) -> User:

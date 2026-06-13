@@ -4,6 +4,8 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
+from app.api.authz import ensure_claim_view_access
+from app.api.authz import ensure_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.adjuster import AdjusterAssignmentRead
@@ -28,6 +30,7 @@ router = APIRouter(tags=["adjusters"])
 async def create_adjuster_endpoint(
     payload: AdjusterCreate, session: DatabaseSession, current_user: CurrentUser
 ) -> AdjusterRead:
+    ensure_staff(current_user)
     adjuster = create_adjuster(
         session=session,
         full_name=payload.full_name,
@@ -43,6 +46,7 @@ async def create_adjuster_endpoint(
 async def list_adjusters_endpoint(
     session: DatabaseSession, current_user: CurrentUser
 ) -> list[AdjusterRead]:
+    ensure_staff(current_user)
     adjusters = list_adjusters(session)
     return [AdjusterRead.model_validate(adjuster) for adjuster in adjusters]
 
@@ -54,12 +58,8 @@ async def list_adjusters_endpoint(
 async def assign_adjuster_endpoint(
     claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> AdjusterAssignmentRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    ensure_staff(current_user)
+    claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     try:
         ranked = assign_best_adjuster(session, claim)

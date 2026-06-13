@@ -2,9 +2,10 @@ from uuid import UUID
 
 from celery.result import AsyncResult
 from fastapi import APIRouter
-from fastapi import HTTPException
 from fastapi import status
 
+from app.api.authz import ensure_claim_view_access
+from app.api.authz import ensure_staff
 from app.api.dependencies import CurrentUser
 from app.api.dependencies import DatabaseSession
 from app.schemas.fraud import FraudCheckRequest
@@ -36,12 +37,9 @@ async def dispatch_async_workflow_execution(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> TaskDispatchRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    # Mirror the synchronous workflow guard: staff-only, own claim only.
+    ensure_staff(current_user)
+    ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     task = execute_workflow_step_task.delay(
         str(claim_id),
@@ -59,12 +57,8 @@ async def dispatch_async_workflow_execution(
 async def dispatch_image_validation_task(
     claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> TaskDispatchRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    ensure_staff(current_user)
+    ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     task = validate_claim_images_task.delay(str(claim_id))
     return TaskDispatchRead(task_id=task.id, task_name=task.task, status=task.status)
@@ -81,12 +75,8 @@ async def dispatch_fraud_check_task(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> TaskDispatchRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    ensure_staff(current_user)
+    ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     task = run_claim_fraud_checks_task.delay(
         str(claim_id),
@@ -104,12 +94,8 @@ async def dispatch_fraud_check_task(
 async def dispatch_adjuster_assignment_task(
     claim_id: UUID, session: DatabaseSession, current_user: CurrentUser
 ) -> TaskDispatchRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    ensure_staff(current_user)
+    ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     task = assign_adjuster_task.delay(str(claim_id))
     return TaskDispatchRead(task_id=task.id, task_name=task.task, status=task.status)
@@ -125,6 +111,8 @@ async def dispatch_repair_estimate_approval_task(
     payload: RepairEstimateApprovalTaskRequest,
     current_user: CurrentUser,
 ) -> TaskDispatchRead:
+    # Approving an estimate authorises spend — staff only.
+    ensure_staff(current_user)
     task = approve_repair_estimate_task.delay(
         str(estimate_id),
         payload.approved,
@@ -144,12 +132,8 @@ async def dispatch_notification_task(
     session: DatabaseSession,
     current_user: CurrentUser,
 ) -> TaskDispatchRead:
-    claim = get_claim_by_id(session, claim_id)
-    if claim is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Claim not found",
-        )
+    ensure_staff(current_user)
+    ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
     task = send_claim_notification_task.delay(
         str(claim_id),
@@ -163,6 +147,8 @@ async def dispatch_notification_task(
 async def get_background_task_status(
     task_id: str, current_user: CurrentUser
 ) -> TaskStatusRead:
+    # Task results can contain claim data; keep polling staff-only.
+    ensure_staff(current_user)
     result = AsyncResult(task_id, app=celery_app)
     payload = result.result if isinstance(result.result, dict) else None
     return TaskStatusRead(
