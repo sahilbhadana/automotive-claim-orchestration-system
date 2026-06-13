@@ -28,11 +28,14 @@ async def get_claim_workflow_state(
 ) -> WorkflowStateRead:
     claim = ensure_claim_view_access(current_user, get_claim_by_id(session, claim_id))
 
+    amount = float(claim.claim_amount)
     return WorkflowStateRead(
         claim_id=serialize_claim_id(claim.id),
         current_status=claim.status,
-        allowed_transitions=get_allowed_transitions(claim.status, claim.claim_type),
-        terminal=is_terminal_state(claim.status, claim.claim_type),
+        allowed_transitions=get_allowed_transitions(
+            claim.status, claim.claim_type, amount
+        ),
+        terminal=is_terminal_state(claim.status, claim.claim_type, amount),
     )
 
 
@@ -68,8 +71,14 @@ async def execute_claim_workflow_step(
             current_status=updated_claim.status,
         ),
         allowed_next_transitions=get_allowed_transitions(
-            updated_claim.status, updated_claim.claim_type
+            updated_claim.status,
+            updated_claim.claim_type,
+            float(updated_claim.claim_amount),
         ),
-        terminal=is_terminal_state(updated_claim.status, updated_claim.claim_type),
+        terminal=is_terminal_state(
+            updated_claim.status,
+            updated_claim.claim_type,
+            float(updated_claim.claim_amount),
+        ),
         reason=payload.reason,
     )

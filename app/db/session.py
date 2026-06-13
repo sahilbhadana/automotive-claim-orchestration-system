@@ -94,6 +94,10 @@ def run_schema_migrations() -> None:
         )
         _add_column_if_missing(inspector, "claims", "fir_number", "VARCHAR(50)")
         _add_column_if_missing(inspector, "claims", "idv", "NUMERIC(12, 2)")
+        _add_column_if_missing(
+            inspector, "claims", "driving_license_number", "VARCHAR(30)"
+        )
+        _add_column_if_missing(inspector, "claims", "license_expiry_date", "DATE")
         if is_postgres:
             # claim_status is a native pg enum; new workflow states must
             # be added to the type before rows can hold them.
@@ -129,6 +133,11 @@ def run_schema_migrations() -> None:
         )
         _add_column_if_missing(
             inspector, "settlements", "excess_amount", "NUMERIC(12, 2)", "0"
+        )
+
+    if "surveys" in tables:
+        _add_column_if_missing(
+            inspector, "surveys", "total_loss_flagged", "BOOLEAN", "FALSE"
         )
 
 

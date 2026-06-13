@@ -41,6 +41,7 @@ class SurveyRead(BaseModel):
     recommended_amount: float | None
     recommendation: SurveyRecommendation | None
     report_notes: str | None
+    total_loss_flagged: bool = False
     appointed_at: datetime
     inspected_at: datetime | None
     report_submitted_at: datetime | None

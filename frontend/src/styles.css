@@ -799,6 +799,7 @@ input[type="file"]::file-selector-button:hover { background: var(--sand); }
 
 .alert-error { background: var(--err-dim); color: var(--err); border-color: var(--err-border); }
 .alert-success { background: var(--ok-dim); color: var(--ok); border-color: var(--ok-border); }
+.alert-warning { background: var(--warn-dim); color: #9a6c41; border-color: var(--warn-border); }
 
 .badge {
   display: inline-flex;

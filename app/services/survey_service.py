@@ -19,6 +19,10 @@ from app.services.audit_service import record_audit_event
 # the surveyor's appointment.
 SURVEY_REPORT_TAT_DAYS = 15
 
+# A vehicle is treated as a total loss when the assessed repair cost
+# reaches this fraction of its Insured Declared Value.
+TOTAL_LOSS_THRESHOLD = 0.75
+
 
 class SurveyError(ValueError):
     pass
@@ -120,6 +124,17 @@ def submit_survey_report(
     survey.report_notes = notes
     survey.report_submitted_at = datetime.now(tz=timezone.utc)
     survey.status = SurveyStatus.REPORT_SUBMITTED
+
+    # Total-loss check: repair cost reaching 75% of IDV is settled as a
+    # total loss at IDV rather than repaired.
+    claim = session.get(Claim, survey.claim_id)
+    total_loss = bool(
+        claim is not None
+        and claim.idv is not None
+        and estimated_loss_amount >= TOTAL_LOSS_THRESHOLD * float(claim.idv)
+    )
+    survey.total_loss_flagged = total_loss
+
     record_audit_event(
         session,
         entity_type="survey",
@@ -130,6 +145,7 @@ def submit_survey_report(
             "estimated_loss_amount": float(estimated_loss_amount),
             "recommended_amount": float(recommended_amount),
             "recommendation": recommendation.value,
+            "total_loss_flagged": total_loss,
         },
     )
     session.commit()

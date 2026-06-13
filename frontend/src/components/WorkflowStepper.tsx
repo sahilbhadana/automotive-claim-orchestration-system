@@ -67,12 +67,22 @@ const LABELS: Record<string, string> = {
   PAYOUT: "Settled",
 };
 
+// IRDAI exempts motor losses under ₹50,000 from a mandatory surveyor.
+const MANDATORY_SURVEY_THRESHOLD = 50000;
+const SURVEY_STEPS: ClaimStatus[] = [
+  "VEHICLE_INSPECTION",
+  "REPAIR_ESTIMATION",
+  "SURVEY_REPORT_REVIEW",
+];
+
 export function WorkflowStepper({
   status,
   claimType = "ACCIDENT",
+  claimAmount,
 }: {
   status: ClaimStatus;
   claimType?: ClaimType;
+  claimAmount?: number;
 }) {
   if (status === "REJECTED") {
     return (
@@ -82,7 +92,16 @@ export function WorkflowStepper({
     );
   }
 
-  const pipeline = PIPELINES[claimType] ?? PIPELINES.ACCIDENT;
+  let pipeline = PIPELINES[claimType] ?? PIPELINES.ACCIDENT;
+  // Small own-damage claims fast-track past the surveyor/inspection path.
+  const ownDamage = claimType === "ACCIDENT" || claimType === "NATURAL_DISASTER";
+  if (
+    ownDamage &&
+    claimAmount !== undefined &&
+    claimAmount < MANDATORY_SURVEY_THRESHOLD
+  ) {
+    pipeline = pipeline.filter((s) => !SURVEY_STEPS.includes(s));
+  }
   const currentIndex = pipeline.indexOf(status);
 
   return (

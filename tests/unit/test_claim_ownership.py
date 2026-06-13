@@ -20,6 +20,8 @@ def _payload(vehicle: str = "MH01AB1234") -> ClaimCreate:
         incident_city="Mumbai",
         claim_amount=60000.0,
         description="Ownership test claim with enough detail",
+        driving_license_number="MH0120100012345",
+        license_expiry_date=date(2030, 1, 1),
     )
 
 

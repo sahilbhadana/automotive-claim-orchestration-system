@@ -68,11 +68,15 @@ export interface Claim {
   claim_type: ClaimType;
   fir_number: string | null;
   idv: number | null;
+  driving_license_number: string | null;
+  license_expiry_date: string | null;
   adjuster_id: string | null;
   claimant_id: string | null;
   status: ClaimStatus;
   created_at: string;
   updated_at: string;
+  intimation_delay_days: number;
+  delayed_intimation: boolean;
 }
 
 export interface ClaimCreate {
@@ -85,6 +89,8 @@ export interface ClaimCreate {
   claim_type: ClaimType;
   fir_number?: string | null;
   idv?: number | null;
+  driving_license_number?: string | null;
+  license_expiry_date?: string | null;
 }
 
 export interface Survey {
@@ -98,6 +104,7 @@ export interface Survey {
   recommended_amount: number | null;
   recommendation: SurveyRecommendation | null;
   report_notes: string | null;
+  total_loss_flagged: boolean;
   appointed_at: string;
   inspected_at: string | null;
   report_submitted_at: string | null;

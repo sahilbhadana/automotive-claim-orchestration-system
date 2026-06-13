@@ -98,6 +98,8 @@ def claim(client, users):
             "incident_city": "Surat",
             "claim_amount": 55000.0,
             "description": "Ownership integration test claim",
+            "driving_license_number": "GJ0520100012345",
+            "license_expiry_date": "2030-01-01",
         },
     )
     assert response.status_code == 201, response.text

@@ -5,12 +5,13 @@ breakdown."""
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 from pydantic import ValidationError
 
 from app.models.claim import Claim, ClaimStatus, ClaimType
+from app.models.policy import CoverageType, Policy, PolicyStatus
 from app.models.settlement import SettlementBasis, SettlementMode
 from app.models.survey import InspectionMode, Survey, SurveyRecommendation  # noqa: F401
 from app.schemas.claim import ClaimCreate
@@ -27,6 +28,7 @@ from app.services.workflow_service import (
     WorkflowTransitionError,
     execute_workflow_step,
     get_allowed_transitions,
+    survey_is_mandatory,
 )
 
 
@@ -38,6 +40,8 @@ def _claim_payload(**overrides) -> dict:
         "incident_city": "Ahmedabad",
         "claim_amount": 80000.0,
         "description": "Lifecycle test claim with enough detail",
+        "driving_license_number": "GJ0120100012345",
+        "license_expiry_date": "2030-01-01",
     }
     base.update(overrides)
     return base
@@ -47,6 +51,8 @@ def _make_claim(
     status: ClaimStatus = ClaimStatus.CLAIM_CREATED,
     claim_type: ClaimType = ClaimType.ACCIDENT,
     idv: float | None = None,
+    claim_amount: float = 80000.0,
+    license_expiry_date: date | None = date(2030, 1, 1),
 ) -> Claim:
     claim = Claim()
     claim.id = uuid.uuid4()
@@ -54,11 +60,13 @@ def _make_claim(
     claim.vehicle_number = "GJ01AA0001"
     claim.incident_date = date(2026, 5, 1)
     claim.incident_city = "Ahmedabad"
-    claim.claim_amount = 80000.0
+    claim.claim_amount = claim_amount
     claim.description = "Lifecycle test claim"
     claim.status = status
     claim.claim_type = claim_type
     claim.idv = idv
+    claim.driving_license_number = "GJ0120100012345"
+    claim.license_expiry_date = license_expiry_date
     return claim
 
 
@@ -294,3 +302,175 @@ class TestPayoutBreakdown:
                 beneficiary_name="Test User",
                 beneficiary_account="1234567890",
             )
+
+
+class TestLicenceRequirement:
+    def test_accident_claim_requires_licence(self):
+        with pytest.raises(ValidationError, match="licence"):
+            ClaimCreate(
+                **{
+                    **_claim_payload(),
+                    "driving_license_number": None,
+                    "license_expiry_date": None,
+                }
+            )
+
+    def test_third_party_claim_requires_licence(self):
+        payload = _claim_payload(claim_type="THIRD_PARTY", fir_number="FIR-1", idv=None)
+        payload["driving_license_number"] = None
+        payload["license_expiry_date"] = None
+        with pytest.raises(ValidationError, match="licence"):
+            ClaimCreate(**payload)
+
+    def test_theft_claim_needs_no_licence(self):
+        claim = ClaimCreate(
+            **{
+                **_claim_payload(claim_type="THEFT", fir_number="FIR-9", idv=400000),
+                "driving_license_number": None,
+                "license_expiry_date": None,
+            }
+        )
+        assert claim.claim_type == ClaimType.THEFT
+
+
+def _seed_policy(session, **overrides) -> Policy:
+    base = {
+        "policy_number": "POL-LIFE-001",
+        "insured_name": "Test Insured",
+        "vehicle_number": "GJ01AA0001",
+        "coverage_type": CoverageType.COMPREHENSIVE,
+        "status": PolicyStatus.ACTIVE,
+        "effective_date": date(2026, 1, 1),
+        "expiry_date": date(2027, 1, 1),
+        "is_vehicle_insured": True,
+    }
+    base.update(overrides)
+    policy = Policy(**base)
+    session.add(policy)
+    session.flush()
+    return policy
+
+
+class TestPolicyValidationGate:
+    def _claim_at_validation(self, session, **kwargs) -> Claim:
+        claim = _make_claim(ClaimStatus.POLICY_VALIDATION, **kwargs)
+        session.add(claim)
+        session.flush()
+        return claim
+
+    def test_expired_licence_blocks_progression(self, db_session):
+        claim = self._claim_at_validation(
+            db_session, license_expiry_date=date(2026, 4, 1)
+        )  # expired before the 2026-05-01 incident
+        with pytest.raises(WorkflowTransitionError, match="licence had expired"):
+            execute_workflow_step(db_session, claim, ClaimStatus.FRAUD_ANALYSIS)
+
+    def test_valid_claim_with_no_policy_on_file_proceeds(self, db_session):
+        claim = self._claim_at_validation(db_session)
+        _, updated = execute_workflow_step(
+            db_session, claim, ClaimStatus.FRAUD_ANALYSIS
+        )
+        assert updated.status == ClaimStatus.FRAUD_ANALYSIS
+
+    def test_lapsed_policy_blocks_progression(self, db_session):
+        _seed_policy(db_session, status=PolicyStatus.LAPSED)
+        claim = self._claim_at_validation(db_session)
+        with pytest.raises(WorkflowTransitionError, match="not active"):
+            execute_workflow_step(db_session, claim, ClaimStatus.FRAUD_ANALYSIS)
+
+    def test_coverage_mismatch_blocks_own_damage(self, db_session):
+        # A third-party-only policy cannot cover an own-damage accident claim.
+        _seed_policy(db_session, coverage_type=CoverageType.THIRD_PARTY)
+        claim = self._claim_at_validation(db_session)
+        with pytest.raises(WorkflowTransitionError, match="does not cover"):
+            execute_workflow_step(db_session, claim, ClaimStatus.FRAUD_ANALYSIS)
+
+    def test_active_matching_policy_proceeds(self, db_session):
+        _seed_policy(db_session)
+        claim = self._claim_at_validation(db_session)
+        _, updated = execute_workflow_step(
+            db_session, claim, ClaimStatus.FRAUD_ANALYSIS
+        )
+        assert updated.status == ClaimStatus.FRAUD_ANALYSIS
+
+
+class TestMandatorySurveyThreshold:
+    def test_small_own_damage_claim_skips_survey(self):
+        assert survey_is_mandatory(ClaimType.ACCIDENT, 40000) is False
+        transitions = get_allowed_transitions(
+            ClaimStatus.ADJUSTER_ASSIGNMENT, ClaimType.ACCIDENT, 40000
+        )
+        assert ClaimStatus.FINAL_APPROVAL in transitions
+
+    def test_large_own_damage_claim_requires_survey(self):
+        assert survey_is_mandatory(ClaimType.ACCIDENT, 80000) is True
+        transitions = get_allowed_transitions(
+            ClaimStatus.ADJUSTER_ASSIGNMENT, ClaimType.ACCIDENT, 80000
+        )
+        assert transitions == [ClaimStatus.VEHICLE_INSPECTION]
+
+    def test_threshold_boundary_is_mandatory(self):
+        # Exactly ₹50,000 is at/above the threshold, so survey is mandatory.
+        assert survey_is_mandatory(ClaimType.ACCIDENT, 50000) is True
+
+
+class TestTotalLossDetection:
+    def _inspected_survey(self, db_session, idv):
+        claim = _make_claim(idv=idv)
+        db_session.add(claim)
+        db_session.flush()
+        survey = appoint_surveyor(db_session, claim, "R. Mehta")
+        record_inspection(db_session, survey, InspectionMode.PHYSICAL)
+        return claim, survey
+
+    def test_total_loss_flagged_above_threshold(self, db_session):
+        # Estimate 320000 is >= 75% of IDV 400000 (=300000).
+        _, survey = self._inspected_survey(db_session, idv=400000)
+        survey = submit_survey_report(
+            db_session,
+            survey,
+            estimated_loss_amount=320000,
+            recommended_amount=300000,
+            recommendation=SurveyRecommendation.APPROVE,
+        )
+        assert survey.total_loss_flagged is True
+
+    def test_repairable_loss_not_flagged(self, db_session):
+        # Estimate 120000 is below 75% of IDV 400000.
+        _, survey = self._inspected_survey(db_session, idv=400000)
+        survey = submit_survey_report(
+            db_session,
+            survey,
+            estimated_loss_amount=120000,
+            recommended_amount=110000,
+            recommendation=SurveyRecommendation.APPROVE,
+        )
+        assert survey.total_loss_flagged is False
+
+
+class TestIntimationDelay:
+    def test_delay_computed_and_flagged(self):
+        from app.schemas.claim import ClaimRead
+
+        claim = _make_claim()
+        claim.id = uuid.uuid4()
+        claim.adjuster_id = None
+        claim.claimant_id = None
+        claim.created_at = datetime(2026, 5, 10, 9, 0, 0)  # 9 days after incident
+        claim.updated_at = datetime(2026, 5, 10, 9, 0, 0)
+        read = ClaimRead.model_validate(claim)
+        assert read.intimation_delay_days == 9
+        assert read.delayed_intimation is True
+
+    def test_prompt_intimation_not_flagged(self):
+        from app.schemas.claim import ClaimRead
+
+        claim = _make_claim()
+        claim.id = uuid.uuid4()
+        claim.adjuster_id = None
+        claim.claimant_id = None
+        claim.created_at = datetime(2026, 5, 1, 18, 0, 0)  # same day
+        claim.updated_at = datetime(2026, 5, 1, 18, 0, 0)
+        read = ClaimRead.model_validate(claim)
+        assert read.intimation_delay_days == 0
+        assert read.delayed_intimation is False

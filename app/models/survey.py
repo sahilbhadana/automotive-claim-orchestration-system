@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
+from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy import Enum
 from sqlalchemy import ForeignKey
@@ -73,6 +74,9 @@ class Survey(Base):
         nullable=True,
     )
     report_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Set when the assessed loss reaches the total-loss threshold
+    # (repair cost >= 75% of the vehicle's IDV).
+    total_loss_flagged: Mapped[bool] = mapped_column(Boolean, default=False)
     appointed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

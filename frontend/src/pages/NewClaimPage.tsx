@@ -38,6 +38,8 @@ export function NewClaimPage() {
     claim_type: "ACCIDENT" as ClaimType,
     fir_number: "",
     idv: "",
+    driving_license_number: "",
+    license_expiry_date: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,6 +50,10 @@ export function NewClaimPage() {
   const firRequired =
     form.claim_type === "THEFT" || form.claim_type === "THIRD_PARTY";
   const idvRequired = form.claim_type === "THEFT";
+  // The driver's licence is only relevant when a driver was operating
+  // the vehicle (accident, third-party); a parked car has no driver.
+  const licenseRequired =
+    form.claim_type === "ACCIDENT" || form.claim_type === "THIRD_PARTY";
   const selectedType = CLAIM_TYPE_OPTIONS.find(
     (o) => o.value === form.claim_type,
   );
@@ -67,6 +73,8 @@ export function NewClaimPage() {
         claim_type: form.claim_type,
         fir_number: form.fir_number || null,
         idv: form.idv ? Number(form.idv) : null,
+        driving_license_number: form.driving_license_number || null,
+        license_expiry_date: form.license_expiry_date || null,
       });
       navigate(`/claims/${claim.id}`);
     } catch (err) {
@@ -203,6 +211,36 @@ export function NewClaimPage() {
             </small>
           )}
         </label>
+
+        {licenseRequired && (
+          <div className="form-row">
+            <label className="field">
+              <span>Driving licence number (mandatory)</span>
+              <input
+                value={form.driving_license_number}
+                onChange={(e) =>
+                  update("driving_license_number")(e.target.value)
+                }
+                required={licenseRequired}
+                minLength={5}
+                placeholder="MH1420110012345"
+              />
+            </label>
+            <label className="field">
+              <span>Licence expiry date (mandatory)</span>
+              <input
+                type="date"
+                value={form.license_expiry_date}
+                onChange={(e) => update("license_expiry_date")(e.target.value)}
+                required={licenseRequired}
+              />
+              <small className="muted">
+                The licence must have been valid on the incident date, or the
+                claim will be rejected at policy validation.
+              </small>
+            </label>
+          </div>
+        )}
 
         <label className="field">
           <span>Description of incident</span>

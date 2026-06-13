@@ -61,6 +61,14 @@ class Claim(Base):
     # Insured Declared Value — the ceiling for any payout; theft and
     # total-loss claims settle at this value.
     idv: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    # The driver's licence. A licence that was invalid on the incident
+    # date is the single most common cause of claim rejection, so it is
+    # captured for accident and third-party claims and verified at the
+    # policy-validation stage.
+    driving_license_number: Mapped[str | None] = mapped_column(
+        String(30), nullable=True
+    )
+    license_expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     adjuster_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("adjusters.id"),
         nullable=True,

@@ -180,8 +180,20 @@ export function ClaimDetailPage() {
         </div>
       </div>
 
+      {claim.delayed_intimation && (
+        <div className="alert alert-warning">
+          Late intimation — this claim was filed {claim.intimation_delay_days}{" "}
+          days after the incident. Reporting beyond 48 hours is a recognised
+          ground for closer scrutiny.
+        </div>
+      )}
+
       <div className="card">
-        <WorkflowStepper status={claim.status} claimType={claim.claim_type} />
+        <WorkflowStepper
+          status={claim.status}
+          claimType={claim.claim_type}
+          claimAmount={claim.claim_amount}
+        />
       </div>
 
       <div className="tabs">
@@ -292,6 +304,25 @@ function WorkflowTab({
           <span className="detail-label">Filed</span>
           <span>{new Date(claim.created_at).toLocaleString()}</span>
         </div>
+        <div>
+          <span className="detail-label">Intimation</span>
+          <span className={claim.delayed_intimation ? "stat-red" : ""}>
+            {claim.intimation_delay_days === 0
+              ? "Same day"
+              : `${claim.intimation_delay_days} day(s) after incident`}
+          </span>
+        </div>
+        {claim.driving_license_number && (
+          <div>
+            <span className="detail-label">Driving licence</span>
+            <span className="mono">
+              {claim.driving_license_number}
+              {claim.license_expiry_date
+                ? ` · exp ${claim.license_expiry_date}`
+                : ""}
+            </span>
+          </div>
+        )}
         <div>
           <span className="detail-label">Last updated</span>
           <span>{new Date(claim.updated_at).toLocaleString()}</span>
@@ -494,6 +525,14 @@ function SurveyTab({
                   <span>{survey.report_notes}</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {survey.total_loss_flagged && (
+            <div className="alert alert-warning">
+              Total loss — the assessed repair cost reaches 75% of the
+              vehicle's IDV. This should be settled as a total loss at IDV
+              rather than repaired.
             </div>
           )}
 
