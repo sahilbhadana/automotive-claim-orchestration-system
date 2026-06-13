@@ -1119,6 +1119,18 @@ input[type="file"]::file-selector-button:hover { background: var(--sand); }
   font-size: 17px;
 }
 
+.fraud-summary {
+  margin: 16px 0;
+  padding: 14px 18px;
+  background: rgba(240, 235, 229, 0.4);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.data-table tr.signal-on td { background: var(--warn-dim); }
+.data-table tr.signal-on td:first-child { font-weight: 700; color: var(--text); }
+
 .rule-list { margin: 0 0 18px; padding: 0; list-style: none; }
 
 .rule-list li {

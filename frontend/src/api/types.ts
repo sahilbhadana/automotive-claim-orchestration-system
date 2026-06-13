@@ -140,10 +140,23 @@ export interface ClaimDocument {
   created_at: string;
 }
 
+export type FraudRecommendation = "CLEAR" | "REVIEW" | "INVESTIGATE";
+
+export interface FraudSignal {
+  code: string;
+  label: string;
+  weight: number;
+  triggered: boolean;
+  detail: string;
+}
+
 export interface FraudAnalysis {
   claim_id: string;
-  risk_level: string;
   risk_score: number;
+  risk_level: string;
+  recommendation: FraudRecommendation;
+  summary: string;
+  signals: FraudSignal[];
   triggered_rules: string[];
   duplicate_claim_count: number;
   repeated_incident_count: number;

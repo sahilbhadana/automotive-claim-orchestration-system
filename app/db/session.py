@@ -35,6 +35,7 @@ def init_db() -> None:
     from app.models.claim import Claim
     from app.models.document import ClaimDocument
     from app.models.failed_task import FailedTask
+    from app.models.fraud_assessment import FraudAssessment
     from app.models.garage import Garage
     from app.models.policy import Policy
     from app.models.repair_estimate import RepairEstimate
@@ -48,6 +49,7 @@ def init_db() -> None:
     Claim.__table__
     ClaimDocument.__table__
     FailedTask.__table__
+    FraudAssessment.__table__
     Garage.__table__
     Policy.__table__
     RepairEstimate.__table__

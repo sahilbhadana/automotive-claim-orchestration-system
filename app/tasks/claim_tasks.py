@@ -10,10 +10,10 @@ from app.services.adjuster_service import determine_required_expertise
 from app.services.claim_service import get_claim_by_id
 from app.services.document_service import list_claim_documents
 from app.services.fraud_service import analyze_claim_for_fraud
+from app.services.fraud_service import persist_fraud_assessment
 from app.services.garage_service import approve_repair_estimate
 from app.services.garage_service import get_repair_estimate_by_id
 from app.services.notification_service import dispatch_claim_notification
-from app.services.policy_service import get_policy_by_number
 from app.services.workflow_service import build_workflow_transition_name
 from app.services.workflow_service import execute_workflow_step
 from app.workers.base_task import ResilientTask
@@ -96,7 +96,10 @@ def run_claim_fraud_checks_task(
                 "triggered_rules": ["claim_not_found"],
             }
 
-        analysis = analyze_claim_for_fraud(
+        # The fraud engine already screens documents, policy, licence,
+        # intimation and amount signals and returns a recommendation, so
+        # the task simply runs it and records the assessment.
+        result = analyze_claim_for_fraud(
             session=session,
             claim=claim,
             payload=None
@@ -105,27 +108,9 @@ def run_claim_fraud_checks_task(
                 garage_name=garage_name,
                 repair_estimate_amount=repair_estimate_amount,
             ),
-        ).model_dump()
-
-        documents = list_claim_documents(session, claim_uuid)
-        policy = get_policy_by_number(session, claim.policy_number)
-
-        if not any(
-            document.document_type == DocumentType.FIR for document in documents
-        ):
-            analysis["triggered_rules"].append("missing_fir_document")
-            analysis["risk_score"] += 2
-
-        if len(documents) < 2:
-            analysis["triggered_rules"].append("insufficient_supporting_evidence")
-            analysis["risk_score"] += 1
-
-        if policy is None:
-            analysis["triggered_rules"].append("policy_missing_during_fraud_screening")
-            analysis["risk_score"] += 2
-
-        analysis["risk_level"] = resolve_risk_level(analysis["risk_score"])
-        return analysis
+        )
+        persist_fraud_assessment(session, claim, result)
+        return result.model_dump(mode="json")
     finally:
         session.close()
 
@@ -343,11 +328,3 @@ def execute_workflow_step_task(
         }
     finally:
         session.close()
-
-
-def resolve_risk_level(risk_score: int) -> str:
-    if risk_score >= 6:
-        return "HIGH"
-    if risk_score >= 3:
-        return "MEDIUM"
-    return "LOW"

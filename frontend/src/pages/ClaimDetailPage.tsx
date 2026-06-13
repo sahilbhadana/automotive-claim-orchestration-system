@@ -8,6 +8,7 @@ import {
   downloadDocument,
   executeWorkflowStep,
   getClaim,
+  getFraudAssessment,
   getSurvey,
   getWorkflowState,
   initiatePayout,
@@ -103,9 +104,13 @@ export function ClaimDetailPage() {
       setActivity(activityData);
       setSurvey(surveyData);
       if (canManage) {
-        // Settlement listing is restricted to adjuster/supervisor/admin roles.
-        const stl = await listClaimSettlements(claimId).catch(() => []);
+        // Settlement listing and fraud screening are staff-only.
+        const [stl, fraudData] = await Promise.all([
+          listClaimSettlements(claimId).catch(() => []),
+          getFraudAssessment(claimId).catch(() => null),
+        ]);
         setSettlements(stl);
+        if (fraudData) setFraud(fraudData);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load claim");
@@ -863,10 +868,15 @@ function FraudTab({
     }
   };
 
-  const riskClass =
-    fraud?.risk_level === "HIGH"
+  const REC_LABEL: Record<string, string> = {
+    CLEAR: "Clear to proceed",
+    REVIEW: "Manual review advised",
+    INVESTIGATE: "Refer to investigation",
+  };
+  const recClass =
+    fraud?.recommendation === "INVESTIGATE"
       ? "risk-high"
-      : fraud?.risk_level === "MEDIUM"
+      : fraud?.recommendation === "REVIEW"
         ? "risk-medium"
         : "risk-low";
 
@@ -903,40 +913,54 @@ function FraudTab({
 
       {fraud && (
         <div className="fraud-result">
-          <div className={`risk-banner ${riskClass}`}>
+          <div className={`risk-banner ${recClass}`}>
             <div className="risk-score">{fraud.risk_score}</div>
             <div>
-              <div className="risk-level">{fraud.risk_level} RISK</div>
+              <div className="risk-level">
+                {REC_LABEL[fraud.recommendation] ?? fraud.recommendation}
+              </div>
               <div className="muted">
-                {fraud.triggered_rules.length} rule
-                {fraud.triggered_rules.length === 1 ? "" : "s"} triggered
+                {fraud.risk_level} risk · score {fraud.risk_score}/100
               </div>
             </div>
           </div>
-          {fraud.triggered_rules.length > 0 && (
-            <ul className="rule-list">
-              {fraud.triggered_rules.map((rule) => (
-                <li key={rule}>⚠ {rule.replace(/_/g, " ")}</li>
-              ))}
-            </ul>
-          )}
-          <div className="detail-grid">
-            <div>
-              <span className="detail-label">Duplicate claims</span>
-              <span>{fraud.duplicate_claim_count}</span>
-            </div>
-            <div>
-              <span className="detail-label">Repeated incidents</span>
-              <span>{fraud.repeated_incident_count}</span>
-            </div>
-            <div>
-              <span className="detail-label">Suspicious repair cost</span>
-              <span>{fraud.suspicious_repair_cost ? "Yes" : "No"}</span>
-            </div>
-            <div>
-              <span className="detail-label">High-risk garage</span>
-              <span>{fraud.high_risk_garage ? "Yes" : "No"}</span>
-            </div>
+
+          <p className="fraud-summary">{fraud.summary}</p>
+
+          <h3>Signal matrix</h3>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Signal</th>
+                  <th>Assessment</th>
+                  <th>Weight</th>
+                  <th>Contribution</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...fraud.signals]
+                  .sort(
+                    (a, b) =>
+                      Number(b.triggered) - Number(a.triggered) ||
+                      b.weight - a.weight,
+                  )
+                  .map((s) => (
+                    <tr key={s.code} className={s.triggered ? "signal-on" : ""}>
+                      <td>{s.label}</td>
+                      <td className="muted small">{s.detail}</td>
+                      <td>{s.weight}</td>
+                      <td>
+                        {s.triggered ? (
+                          <span className="badge badge-red">+{s.weight}</span>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

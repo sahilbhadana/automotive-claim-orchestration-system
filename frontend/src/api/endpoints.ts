@@ -114,6 +114,9 @@ export const analyzeFraud = (
     repair_estimate_amount: repairEstimate || null,
   });
 
+export const getFraudAssessment = (claimId: string) =>
+  api.get<FraudAnalysis>(`/claims/${claimId}/fraud`);
+
 // --- Adjusters ---
 export const listAdjusters = () => api.get<Adjuster[]>("/adjusters");
 export const assignAdjuster = (claimId: string) =>
