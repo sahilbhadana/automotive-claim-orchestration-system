@@ -8,11 +8,26 @@ export type ClaimStatus =
   | "POLICY_VALIDATION"
   | "FRAUD_ANALYSIS"
   | "ADJUSTER_ASSIGNMENT"
+  | "VEHICLE_INSPECTION"
   | "REPAIR_ESTIMATION"
+  | "SURVEY_REPORT_REVIEW"
+  | "LEGAL_REVIEW"
   | "FINAL_APPROVAL"
   | "APPROVED"
   | "REJECTED"
   | "PAYOUT";
+
+export type ClaimType = "ACCIDENT" | "THEFT" | "THIRD_PARTY" | "NATURAL_DISASTER";
+
+export type SettlementMode = "REPAIR" | "CASH_LOSS" | "NET_OF_SALVAGE" | "TOTAL_LOSS";
+
+export type SettlementBasis = "CASHLESS" | "REIMBURSEMENT";
+
+export type SurveyStatus = "APPOINTED" | "INSPECTION_DONE" | "REPORT_SUBMITTED";
+
+export type InspectionMode = "PHYSICAL" | "DIGITAL";
+
+export type SurveyRecommendation = "APPROVE" | "REJECT";
 
 export type SettlementStatus =
   | "INITIATED"
@@ -50,6 +65,9 @@ export interface Claim {
   incident_city: string;
   claim_amount: number;
   description: string;
+  claim_type: ClaimType;
+  fir_number: string | null;
+  idv: number | null;
   adjuster_id: string | null;
   claimant_id: string | null;
   status: ClaimStatus;
@@ -64,6 +82,27 @@ export interface ClaimCreate {
   incident_city: string;
   claim_amount: number;
   description: string;
+  claim_type: ClaimType;
+  fir_number?: string | null;
+  idv?: number | null;
+}
+
+export interface Survey {
+  id: string;
+  claim_id: string;
+  surveyor_name: string;
+  status: SurveyStatus;
+  inspection_mode: InspectionMode | null;
+  inspection_notes: string | null;
+  estimated_loss_amount: number | null;
+  recommended_amount: number | null;
+  recommendation: SurveyRecommendation | null;
+  report_notes: string | null;
+  appointed_at: string;
+  inspected_at: string | null;
+  report_submitted_at: string | null;
+  report_due_at: string | null;
+  report_overdue: boolean;
 }
 
 export interface WorkflowState {
@@ -112,6 +151,12 @@ export interface Settlement {
   claim_id: string;
   payout_amount: number;
   approved_amount: number | null;
+  assessed_amount: number | null;
+  depreciation_amount: number;
+  excess_amount: number;
+  settlement_mode: SettlementMode;
+  settlement_basis: SettlementBasis;
+  garage_name: string | null;
   payment_method: PaymentMethod;
   beneficiary_name: string;
   beneficiary_account: string;
@@ -127,7 +172,13 @@ export interface Settlement {
 }
 
 export interface InitiatePayoutRequest {
-  payout_amount: number;
+  payout_amount?: number | null;
+  assessed_amount?: number | null;
+  depreciation_amount?: number;
+  excess_amount?: number;
+  settlement_mode?: SettlementMode;
+  settlement_basis?: SettlementBasis;
+  garage_name?: string | null;
   payment_method: PaymentMethod;
   beneficiary_name: string;
   beneficiary_account: string;

@@ -12,6 +12,7 @@ from app.api.notification_routes import router as notification_router
 from app.api.policy_routes import router as policy_router
 from app.api.retry_routes import router as retry_router
 from app.api.settlement_routes import router as settlement_router
+from app.api.survey_routes import router as survey_router
 from app.api.task_routes import router as task_router
 from app.api.verification_routes import router as verification_router
 from app.api.workflow_routes import router as workflow_router
@@ -31,6 +32,7 @@ router.include_router(notification_router)
 router.include_router(policy_router)
 router.include_router(retry_router)
 router.include_router(settlement_router)
+router.include_router(survey_router)
 router.include_router(task_router)
 router.include_router(verification_router)
 router.include_router(workflow_router)

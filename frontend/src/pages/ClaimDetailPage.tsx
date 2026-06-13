@@ -3,15 +3,19 @@ import { Check, Circle, Download } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
   analyzeFraud,
+  appointSurveyor,
   assignAdjuster,
   downloadDocument,
   executeWorkflowStep,
   getClaim,
+  getSurvey,
   getWorkflowState,
   initiatePayout,
   listClaimActivity,
   listClaimSettlements,
   listDocuments,
+  recordInspection,
+  submitSurveyReport,
   uploadDocument,
 } from "../api/endpoints";
 import type {
@@ -19,10 +23,15 @@ import type {
   Claim,
   ClaimDocument,
   ClaimStatus,
+  ClaimType,
   DocumentType,
   FraudAnalysis,
+  InspectionMode,
   PaymentMethod,
   Settlement,
+  SettlementBasis,
+  SettlementMode,
+  Survey,
   WorkflowState,
 } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
@@ -43,7 +52,20 @@ const DOC_LABELS: Record<DocumentType, string> = {
   RC: "Registration Certificate",
 };
 
-type Tab = "workflow" | "documents" | "fraud" | "settlements" | "activity";
+const CLAIM_TYPE_LABELS: Record<ClaimType, string> = {
+  ACCIDENT: "Accident",
+  THEFT: "Theft",
+  THIRD_PARTY: "Third-party",
+  NATURAL_DISASTER: "Natural disaster",
+};
+
+type Tab =
+  | "workflow"
+  | "documents"
+  | "survey"
+  | "fraud"
+  | "settlements"
+  | "activity";
 
 export function ClaimDetailPage() {
   const { claimId } = useParams<{ claimId: string }>();
@@ -53,6 +75,7 @@ export function ClaimDetailPage() {
   const [documents, setDocuments] = useState<ClaimDocument[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [activity, setActivity] = useState<AuditLogEntry[]>([]);
+  const [survey, setSurvey] = useState<Survey | null>(null);
   const [fraud, setFraud] = useState<FraudAnalysis | null>(null);
   const [tab, setTab] = useState<Tab>("workflow");
   const [error, setError] = useState<string | null>(null);
@@ -66,16 +89,19 @@ export function ClaimDetailPage() {
   const refresh = useCallback(async () => {
     if (!claimId) return;
     try {
-      const [claimData, workflowData, docs, activityData] = await Promise.all([
-        getClaim(claimId),
-        getWorkflowState(claimId),
-        listDocuments(claimId),
-        listClaimActivity(claimId),
-      ]);
+      const [claimData, workflowData, docs, activityData, surveyData] =
+        await Promise.all([
+          getClaim(claimId),
+          getWorkflowState(claimId),
+          listDocuments(claimId),
+          listClaimActivity(claimId),
+          getSurvey(claimId).catch(() => null),
+        ]);
       setClaim(claimData);
       setWorkflow(workflowData);
       setDocuments(docs);
       setActivity(activityData);
+      setSurvey(surveyData);
       if (canManage) {
         // Settlement listing is restricted to adjuster/supervisor/admin roles.
         const stl = await listClaimSettlements(claimId).catch(() => []);
@@ -145,14 +171,17 @@ export function ClaimDetailPage() {
             <StatusBadge status={claim.status} />
           </h1>
           <p className="page-subtitle">
-            Policy {claim.policy_number} · {claim.incident_city} ·{" "}
+            {CLAIM_TYPE_LABELS[claim.claim_type]} claim · Policy{" "}
+            {claim.policy_number} · {claim.incident_city} ·{" "}
             {claim.incident_date} · {formatINR(claim.claim_amount)}
+            {claim.fir_number ? ` · FIR ${claim.fir_number}` : ""}
+            {claim.idv ? ` · IDV ${formatINR(claim.idv)}` : ""}
           </p>
         </div>
       </div>
 
       <div className="card">
-        <WorkflowStepper status={claim.status} />
+        <WorkflowStepper status={claim.status} claimType={claim.claim_type} />
       </div>
 
       <div className="tabs">
@@ -160,6 +189,9 @@ export function ClaimDetailPage() {
           [
             ["workflow", "Workflow"],
             ["documents", `Documents (${documents.length})`],
+            ...(claim.claim_type !== "THIRD_PARTY"
+              ? [["survey", survey ? "Survey ●" : "Survey"] as [Tab, string]]
+              : []),
             ["fraud", "Fraud Analysis"],
             ...(canManage
               ? [["settlements", `Settlements (${settlements.length})`] as [Tab, string]]
@@ -191,6 +223,17 @@ export function ClaimDetailPage() {
           claimId={claimId}
           documents={documents}
           onUploaded={refresh}
+          onError={fail}
+          onNotice={flash}
+        />
+      )}
+      {tab === "survey" && (
+        <SurveyTab
+          claimId={claimId}
+          claim={claim}
+          survey={survey}
+          canManage={canManage}
+          onChanged={refresh}
           onError={fail}
           onNotice={flash}
         />
@@ -284,6 +327,331 @@ function WorkflowTab({
                 </button>
               )}
             </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SurveyTab({
+  claimId,
+  claim,
+  survey,
+  canManage,
+  onChanged,
+  onError,
+  onNotice,
+}: {
+  claimId: string;
+  claim: Claim;
+  survey: Survey | null;
+  canManage: boolean;
+  onChanged: () => void;
+  onError: (err: unknown) => void;
+  onNotice: (msg: string) => void;
+}) {
+  const [surveyorName, setSurveyorName] = useState("");
+  const [inspectionMode, setInspectionMode] = useState<InspectionMode>("PHYSICAL");
+  const [inspectionNotes, setInspectionNotes] = useState("");
+  const [report, setReport] = useState({
+    estimated_loss_amount: "",
+    recommended_amount: "",
+    recommendation: "APPROVE",
+    notes: "",
+  });
+  const [busy, setBusy] = useState(false);
+
+  const isTheft = claim.claim_type === "THEFT";
+  const roleNoun = isTheft ? "investigator" : "surveyor";
+
+  const act = async (fn: () => Promise<unknown>, msg: string) => {
+    setBusy(true);
+    try {
+      await fn();
+      onNotice(msg);
+      onChanged();
+    } catch (err) {
+      onError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <h3>{isTheft ? "Theft investigation" : "Survey & inspection"}</h3>
+
+      {!survey && (
+        <>
+          <p className="muted">
+            No {roleNoun} appointed yet. The claims manual requires
+            appointment within 24 hours of registration
+            {isTheft
+              ? "; the investigator verifies the FIR and the police non-traceable report."
+              : "; the vehicle must be inspected before any repairs are authorized."}
+          </p>
+          {canManage && (
+            <form
+              className="form-row form-row-end"
+              onSubmit={(e) => {
+                e.preventDefault();
+                act(
+                  () => appointSurveyor(claimId, surveyorName),
+                  `Appointed ${surveyorName}`,
+                );
+              }}
+            >
+              <label className="field">
+                <span>{isTheft ? "Investigator" : "Surveyor"} name</span>
+                <input
+                  value={surveyorName}
+                  onChange={(e) => setSurveyorName(e.target.value)}
+                  required
+                  minLength={2}
+                  placeholder="R. Mehta"
+                />
+              </label>
+              <button className="btn btn-primary" disabled={busy}>
+                Appoint
+              </button>
+            </form>
+          )}
+        </>
+      )}
+
+      {survey && (
+        <>
+          <div className="detail-grid">
+            <div>
+              <span className="detail-label">{roleNoun}</span>
+              <span>{survey.surveyor_name}</span>
+            </div>
+            <div>
+              <span className="detail-label">Status</span>
+              <StatusBadge status={survey.status} />
+            </div>
+            <div>
+              <span className="detail-label">Appointed</span>
+              <span>{new Date(survey.appointed_at).toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="detail-label">Report due</span>
+              <span className={survey.report_overdue ? "stat-red" : ""}>
+                {survey.report_due_at
+                  ? new Date(survey.report_due_at).toLocaleDateString()
+                  : "—"}
+                {survey.report_overdue ? " (overdue)" : ""}
+              </span>
+            </div>
+          </div>
+
+          {survey.inspected_at && (
+            <div className="detail-grid">
+              <div>
+                <span className="detail-label">Inspection</span>
+                <span>
+                  {survey.inspection_mode === "DIGITAL"
+                    ? "Digital (video)"
+                    : "Physical"}{" "}
+                  · {new Date(survey.inspected_at).toLocaleString()}
+                </span>
+              </div>
+              {survey.inspection_notes && (
+                <div>
+                  <span className="detail-label">Inspection notes</span>
+                  <span>{survey.inspection_notes}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {survey.report_submitted_at && (
+            <div className="detail-grid">
+              <div>
+                <span className="detail-label">Estimated loss</span>
+                <span className="amount">
+                  {formatINR(survey.estimated_loss_amount ?? 0)}
+                </span>
+              </div>
+              <div>
+                <span className="detail-label">Recommended payable</span>
+                <span className="amount">
+                  {formatINR(survey.recommended_amount ?? 0)}
+                </span>
+              </div>
+              <div>
+                <span className="detail-label">Recommendation</span>
+                <StatusBadge
+                  status={
+                    survey.recommendation === "APPROVE" ? "APPROVED" : "REJECTED"
+                  }
+                />
+              </div>
+              {survey.report_notes && (
+                <div>
+                  <span className="detail-label">Report notes</span>
+                  <span>{survey.report_notes}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {canManage && !survey.inspected_at && !isTheft && (
+            <>
+              <h3>Record inspection</h3>
+              <p className="muted small">
+                Repairs cannot be authorized until this inspection is recorded.
+              </p>
+              <form
+                className="form-row form-row-end"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  act(
+                    () =>
+                      recordInspection(claimId, inspectionMode, inspectionNotes),
+                    "Inspection recorded",
+                  );
+                }}
+              >
+                <label className="field">
+                  <span>Mode</span>
+                  <select
+                    value={inspectionMode}
+                    onChange={(e) =>
+                      setInspectionMode(e.target.value as InspectionMode)
+                    }
+                  >
+                    <option value="PHYSICAL">Physical (on site)</option>
+                    <option value="DIGITAL">Digital (live video)</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Notes (optional)</span>
+                  <input
+                    value={inspectionNotes}
+                    onChange={(e) => setInspectionNotes(e.target.value)}
+                    placeholder="Front bumper and bonnet damage confirmed"
+                  />
+                </label>
+                <button className="btn btn-primary" disabled={busy}>
+                  Record
+                </button>
+              </form>
+            </>
+          )}
+
+          {canManage && !survey.inspected_at && isTheft && (
+            <>
+              <h3>Record fact verification</h3>
+              <form
+                className="form-row form-row-end"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  act(
+                    () =>
+                      recordInspection(claimId, "DIGITAL", inspectionNotes),
+                    "Fact verification recorded",
+                  );
+                }}
+              >
+                <label className="field">
+                  <span>Verification notes</span>
+                  <input
+                    value={inspectionNotes}
+                    onChange={(e) => setInspectionNotes(e.target.value)}
+                    placeholder="FIR verified; non-traceable report received"
+                  />
+                </label>
+                <button className="btn btn-primary" disabled={busy}>
+                  Record
+                </button>
+              </form>
+            </>
+          )}
+
+          {canManage && survey.inspected_at && !survey.report_submitted_at && (
+            <>
+              <h3>Submit {isTheft ? "investigation" : "survey"} report</h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  act(
+                    () =>
+                      submitSurveyReport(claimId, {
+                        estimated_loss_amount: Number(
+                          report.estimated_loss_amount,
+                        ),
+                        recommended_amount: Number(report.recommended_amount),
+                        recommendation: report.recommendation,
+                        notes: report.notes || null,
+                      }),
+                    "Report submitted",
+                  );
+                }}
+              >
+                <div className="form-row">
+                  <label className="field">
+                    <span>Estimated loss (₹)</span>
+                    <input
+                      type="number"
+                      value={report.estimated_loss_amount}
+                      onChange={(e) =>
+                        setReport((r) => ({
+                          ...r,
+                          estimated_loss_amount: e.target.value,
+                        }))
+                      }
+                      required
+                      min={1}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Recommended payable (₹)</span>
+                    <input
+                      type="number"
+                      value={report.recommended_amount}
+                      onChange={(e) =>
+                        setReport((r) => ({
+                          ...r,
+                          recommended_amount: e.target.value,
+                        }))
+                      }
+                      required
+                      min={1}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Recommendation</span>
+                    <select
+                      value={report.recommendation}
+                      onChange={(e) =>
+                        setReport((r) => ({
+                          ...r,
+                          recommendation: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="APPROVE">Approve</option>
+                      <option value="REJECT">Reject</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="field">
+                  <span>Notes (optional)</span>
+                  <input
+                    value={report.notes}
+                    onChange={(e) =>
+                      setReport((r) => ({ ...r, notes: e.target.value }))
+                    }
+                    placeholder="Depreciation applies on plastic panels"
+                  />
+                </label>
+                <button className="btn btn-primary" disabled={busy}>
+                  Submit Report
+                </button>
+              </form>
+            </>
           )}
         </>
       )}
@@ -554,8 +922,16 @@ function SettlementsTab({
   onError: (err: unknown) => void;
   onNotice: (msg: string) => void;
 }) {
+  const isTheft = claim.claim_type === "THEFT";
   const [form, setForm] = useState({
-    payout_amount: String(claim.claim_amount),
+    assessed_amount: String(
+      isTheft && claim.idv ? claim.idv : claim.claim_amount,
+    ),
+    depreciation_amount: "0",
+    excess_amount: "1000",
+    settlement_mode: (isTheft ? "TOTAL_LOSS" : "REPAIR") as SettlementMode,
+    settlement_basis: "REIMBURSEMENT" as SettlementBasis,
+    garage_name: "",
     payment_method: "BANK_TRANSFER" as PaymentMethod,
     beneficiary_name: "",
     beneficiary_account: "",
@@ -567,12 +943,22 @@ function SettlementsTab({
     (s) => s.status !== "FAILED" && s.status !== "REVERSED",
   );
 
+  const computedPayout =
+    Number(form.assessed_amount || 0) -
+    Number(form.depreciation_amount || 0) -
+    Number(form.excess_amount || 0);
+
   const handleInitiate = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
       await initiatePayout(claimId, {
-        payout_amount: Number(form.payout_amount),
+        assessed_amount: Number(form.assessed_amount),
+        depreciation_amount: Number(form.depreciation_amount || 0),
+        excess_amount: Number(form.excess_amount || 0),
+        settlement_mode: form.settlement_mode,
+        settlement_basis: form.settlement_basis,
+        garage_name: form.garage_name || null,
         payment_method: form.payment_method,
         beneficiary_name: form.beneficiary_name,
         beneficiary_account: form.beneficiary_account,
@@ -598,21 +984,30 @@ function SettlementsTab({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Beneficiary</th>
+                <th>Payout</th>
+                <th>Breakdown</th>
+                <th>Mode</th>
+                <th>Basis</th>
                 <th>Status</th>
                 <th>Retries</th>
                 <th>Reference</th>
-                <th>Initiated</th>
               </tr>
             </thead>
             <tbody>
               {settlements.map((s) => (
                 <tr key={s.id}>
                   <td className="amount">{formatINR(s.payout_amount)}</td>
-                  <td>{s.payment_method.replace(/_/g, " ")}</td>
-                  <td>{s.beneficiary_name}</td>
+                  <td className="small">
+                    {s.assessed_amount != null
+                      ? `${formatINR(s.assessed_amount)} − ${formatINR(s.depreciation_amount)} dep − ${formatINR(s.excess_amount)} excess`
+                      : "—"}
+                  </td>
+                  <td>{s.settlement_mode.replace(/_/g, " ")}</td>
+                  <td>
+                    {s.settlement_basis === "CASHLESS"
+                      ? `Cashless (${s.garage_name ?? "garage"})`
+                      : "Reimbursement"}
+                  </td>
                   <td>
                     <StatusBadge status={s.status} />
                   </td>
@@ -620,7 +1015,6 @@ function SettlementsTab({
                     {s.retry_count}/{s.max_retries}
                   </td>
                   <td className="mono">{s.transaction_reference ?? "—"}</td>
-                  <td>{new Date(s.initiated_at).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -631,19 +1025,100 @@ function SettlementsTab({
       {canPayout && claim.status === "APPROVED" && !hasActive && (
         <>
           <h3>Initiate payout</h3>
+          {isTheft && (
+            <p className="muted small">
+              Theft claims settle as a total loss at the vehicle's IDV
+              {claim.idv ? ` (${formatINR(claim.idv)})` : ""}.
+            </p>
+          )}
           <form onSubmit={handleInitiate}>
             <div className="form-row">
               <label className="field">
-                <span>Payout amount (₹)</span>
+                <span>Assessed amount (₹)</span>
                 <input
                   type="number"
-                  value={form.payout_amount}
+                  value={form.assessed_amount}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, payout_amount: e.target.value }))
+                    setForm((f) => ({ ...f, assessed_amount: e.target.value }))
                   }
                   required
                   min={1}
                 />
+              </label>
+              <label className="field">
+                <span>Depreciation (₹)</span>
+                <input
+                  type="number"
+                  value={form.depreciation_amount}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      depreciation_amount: e.target.value,
+                    }))
+                  }
+                  min={0}
+                />
+              </label>
+              <label className="field">
+                <span>Excess / deductible (₹)</span>
+                <input
+                  type="number"
+                  value={form.excess_amount}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, excess_amount: e.target.value }))
+                  }
+                  min={0}
+                />
+              </label>
+            </div>
+            <p className="payout-preview">
+              Payable:{" "}
+              <strong>
+                {computedPayout > 0 ? formatINR(computedPayout) : "—"}
+              </strong>{" "}
+              <span className="muted small">
+                (assessed − depreciation − excess
+                {claim.idv ? `, capped at IDV ${formatINR(claim.idv)}` : ""})
+              </span>
+            </p>
+            <div className="form-row">
+              {!isTheft && (
+                <label className="field">
+                  <span>Settlement mode</span>
+                  <select
+                    value={form.settlement_mode}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        settlement_mode: e.target.value as SettlementMode,
+                      }))
+                    }
+                  >
+                    <option value="REPAIR">Repair</option>
+                    <option value="CASH_LOSS">Cash loss</option>
+                    <option value="NET_OF_SALVAGE">Net of salvage</option>
+                    <option value="TOTAL_LOSS">Total loss</option>
+                  </select>
+                </label>
+              )}
+              <label className="field">
+                <span>Settlement basis</span>
+                <select
+                  value={form.settlement_basis}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      settlement_basis: e.target.value as SettlementBasis,
+                    }))
+                  }
+                >
+                  <option value="REIMBURSEMENT">
+                    Reimbursement (any garage, original bills)
+                  </option>
+                  <option value="CASHLESS">
+                    Cashless (network garage, paid directly)
+                  </option>
+                </select>
               </label>
               <label className="field">
                 <span>Payment method</span>
@@ -664,6 +1139,20 @@ function SettlementsTab({
                 </select>
               </label>
             </div>
+            {form.settlement_basis === "CASHLESS" && (
+              <label className="field">
+                <span>Network garage</span>
+                <input
+                  value={form.garage_name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, garage_name: e.target.value }))
+                  }
+                  required
+                  minLength={2}
+                  placeholder="Apex Motors, Pune"
+                />
+              </label>
+            )}
             <div className="form-row">
               <label className="field">
                 <span>Beneficiary name</span>

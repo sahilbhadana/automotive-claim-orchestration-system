@@ -34,6 +34,18 @@ class PaymentMethod(StrEnum):
     RTGS = "RTGS"
 
 
+class SettlementMode(StrEnum):
+    REPAIR = "REPAIR"
+    CASH_LOSS = "CASH_LOSS"
+    NET_OF_SALVAGE = "NET_OF_SALVAGE"
+    TOTAL_LOSS = "TOTAL_LOSS"
+
+
+class SettlementBasis(StrEnum):
+    CASHLESS = "CASHLESS"
+    REIMBURSEMENT = "REIMBURSEMENT"
+
+
 class Settlement(Base):
     __tablename__ = "settlements"
 
@@ -57,6 +69,20 @@ class Settlement(Base):
         default=SettlementStatus.INITIATED,
         index=True,
     )
+    settlement_mode: Mapped[SettlementMode] = mapped_column(
+        Enum(SettlementMode, name="settlement_mode", native_enum=False, length=20),
+        default=SettlementMode.REPAIR,
+    )
+    settlement_basis: Mapped[SettlementBasis] = mapped_column(
+        Enum(SettlementBasis, name="settlement_basis", native_enum=False, length=20),
+        default=SettlementBasis.REIMBURSEMENT,
+    )
+    # Cashless settlements are paid directly to a network garage.
+    garage_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Payout breakdown: assessed loss minus depreciation minus excess.
+    assessed_amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    depreciation_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    excess_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, default=3)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)

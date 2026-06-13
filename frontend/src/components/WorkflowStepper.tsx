@@ -1,31 +1,79 @@
 import { Check } from "lucide-react";
-import type { ClaimStatus } from "../api/types";
+import type { ClaimStatus, ClaimType } from "../api/types";
 
-const PIPELINE: ClaimStatus[] = [
-  "CLAIM_CREATED",
-  "DOCUMENT_VERIFICATION",
-  "POLICY_VALIDATION",
-  "FRAUD_ANALYSIS",
-  "ADJUSTER_ASSIGNMENT",
-  "REPAIR_ESTIMATION",
-  "FINAL_APPROVAL",
-  "APPROVED",
-  "PAYOUT",
-];
+// Each claim type follows its own pipeline, mirroring the backend
+// state machines.
+const PIPELINES: Record<ClaimType, ClaimStatus[]> = {
+  ACCIDENT: [
+    "CLAIM_CREATED",
+    "DOCUMENT_VERIFICATION",
+    "POLICY_VALIDATION",
+    "FRAUD_ANALYSIS",
+    "ADJUSTER_ASSIGNMENT",
+    "VEHICLE_INSPECTION",
+    "REPAIR_ESTIMATION",
+    "SURVEY_REPORT_REVIEW",
+    "FINAL_APPROVAL",
+    "APPROVED",
+    "PAYOUT",
+  ],
+  NATURAL_DISASTER: [
+    "CLAIM_CREATED",
+    "DOCUMENT_VERIFICATION",
+    "POLICY_VALIDATION",
+    "FRAUD_ANALYSIS",
+    "ADJUSTER_ASSIGNMENT",
+    "VEHICLE_INSPECTION",
+    "REPAIR_ESTIMATION",
+    "SURVEY_REPORT_REVIEW",
+    "FINAL_APPROVAL",
+    "APPROVED",
+    "PAYOUT",
+  ],
+  THEFT: [
+    "CLAIM_CREATED",
+    "DOCUMENT_VERIFICATION",
+    "POLICY_VALIDATION",
+    "FRAUD_ANALYSIS",
+    "ADJUSTER_ASSIGNMENT",
+    "SURVEY_REPORT_REVIEW",
+    "FINAL_APPROVAL",
+    "APPROVED",
+    "PAYOUT",
+  ],
+  THIRD_PARTY: [
+    "CLAIM_CREATED",
+    "DOCUMENT_VERIFICATION",
+    "POLICY_VALIDATION",
+    "LEGAL_REVIEW",
+    "FINAL_APPROVAL",
+    "APPROVED",
+    "PAYOUT",
+  ],
+};
 
 const LABELS: Record<string, string> = {
-  CLAIM_CREATED: "Created",
+  CLAIM_CREATED: "Registered",
   DOCUMENT_VERIFICATION: "Documents",
   POLICY_VALIDATION: "Policy",
   FRAUD_ANALYSIS: "Fraud Check",
-  ADJUSTER_ASSIGNMENT: "Adjuster",
+  ADJUSTER_ASSIGNMENT: "Surveyor",
+  VEHICLE_INSPECTION: "Inspection",
   REPAIR_ESTIMATION: "Repair Est.",
+  SURVEY_REPORT_REVIEW: "Survey Report",
+  LEGAL_REVIEW: "Legal / MACT",
   FINAL_APPROVAL: "Final Review",
   APPROVED: "Approved",
-  PAYOUT: "Payout",
+  PAYOUT: "Settled",
 };
 
-export function WorkflowStepper({ status }: { status: ClaimStatus }) {
+export function WorkflowStepper({
+  status,
+  claimType = "ACCIDENT",
+}: {
+  status: ClaimStatus;
+  claimType?: ClaimType;
+}) {
   if (status === "REJECTED") {
     return (
       <div className="stepper stepper-rejected">
@@ -34,11 +82,12 @@ export function WorkflowStepper({ status }: { status: ClaimStatus }) {
     );
   }
 
-  const currentIndex = PIPELINE.indexOf(status);
+  const pipeline = PIPELINES[claimType] ?? PIPELINES.ACCIDENT;
+  const currentIndex = pipeline.indexOf(status);
 
   return (
     <div className="stepper">
-      {PIPELINE.map((step, i) => {
+      {pipeline.map((step, i) => {
         const state =
           i < currentIndex ? "done" : i === currentIndex ? "active" : "todo";
         return (
@@ -47,7 +96,7 @@ export function WorkflowStepper({ status }: { status: ClaimStatus }) {
               {state === "done" ? <Check size={13} /> : i + 1}
             </div>
             <div className="step-label">{LABELS[step]}</div>
-            {i < PIPELINE.length - 1 && <div className="step-line" />}
+            {i < pipeline.length - 1 && <div className="step-line" />}
           </div>
         );
       })}

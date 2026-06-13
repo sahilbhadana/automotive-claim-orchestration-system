@@ -14,6 +14,7 @@ import type {
   MetricsSummary,
   RetryQueueStats,
   Settlement,
+  Survey,
   TokenRead,
   User,
   UserRole,
@@ -135,6 +136,35 @@ export const reverseSettlement = (settlementId: string, reason: string) =>
   api.post<Settlement>(
     `/settlements/${settlementId}/reverse?reason=${encodeURIComponent(reason)}`,
   );
+
+// --- Survey ---
+export const getSurvey = (claimId: string) =>
+  api.get<Survey>(`/claims/${claimId}/survey`);
+
+export const appointSurveyor = (claimId: string, surveyorName: string) =>
+  api.post<Survey>(`/claims/${claimId}/survey/appoint`, {
+    surveyor_name: surveyorName,
+  });
+
+export const recordInspection = (
+  claimId: string,
+  inspectionMode: string,
+  notes?: string,
+) =>
+  api.post<Survey>(`/claims/${claimId}/survey/inspection`, {
+    inspection_mode: inspectionMode,
+    notes: notes || null,
+  });
+
+export const submitSurveyReport = (
+  claimId: string,
+  payload: {
+    estimated_loss_amount: number;
+    recommended_amount: number;
+    recommendation: string;
+    notes?: string | null;
+  },
+) => api.post<Survey>(`/claims/${claimId}/survey/report`, payload);
 
 // --- Audit ---
 export const listClaimActivity = (claimId: string) =>

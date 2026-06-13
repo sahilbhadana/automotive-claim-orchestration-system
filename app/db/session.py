@@ -39,6 +39,7 @@ def init_db() -> None:
     from app.models.policy import Policy
     from app.models.repair_estimate import RepairEstimate
     from app.models.settlement import Settlement
+    from app.models.survey import Survey
     from app.models.user import User
 
     # Importing the model registers its metadata before create_all runs.
@@ -51,9 +52,28 @@ def init_db() -> None:
     Policy.__table__
     RepairEstimate.__table__
     Settlement.__table__
+    Survey.__table__
     User.__table__
     Base.metadata.create_all(bind=engine)
     run_schema_migrations()
+
+
+def _add_column_if_missing(
+    inspector,
+    table: str,
+    column: str,
+    ddl_type: str,
+    default_sql: str | None = None,
+) -> None:
+    existing = {col["name"] for col in inspector.get_columns(table)}
+    if column in existing:
+        return
+    ddl = f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"
+    if default_sql is not None:
+        ddl += f" DEFAULT {default_sql}"
+    with engine.begin() as connection:
+        connection.execute(text(ddl))
+    logger.info("migrated: added %s.%s", table, column)
 
 
 def run_schema_migrations() -> None:
@@ -63,17 +83,53 @@ def run_schema_migrations() -> None:
     tables must be ALTERed in. Each migration here must be idempotent.
     """
     inspector = inspect(engine)
-    if "claims" not in inspector.get_table_names():
-        return
+    tables = set(inspector.get_table_names())
+    is_postgres = engine.dialect.name == "postgresql"
+    uuid_type = "UUID" if is_postgres else "CHAR(32)"
 
-    claim_columns = {column["name"] for column in inspector.get_columns("claims")}
-    if "claimant_id" not in claim_columns:
-        column_type = "UUID" if engine.dialect.name == "postgresql" else "CHAR(32)"
-        with engine.begin() as connection:
-            connection.execute(
-                text(f"ALTER TABLE claims ADD COLUMN claimant_id {column_type}")
-            )
-        logger.info("migrated: added claims.claimant_id")
+    if "claims" in tables:
+        _add_column_if_missing(inspector, "claims", "claimant_id", uuid_type)
+        _add_column_if_missing(
+            inspector, "claims", "claim_type", "VARCHAR(20)", "'ACCIDENT'"
+        )
+        _add_column_if_missing(inspector, "claims", "fir_number", "VARCHAR(50)")
+        _add_column_if_missing(inspector, "claims", "idv", "NUMERIC(12, 2)")
+        if is_postgres:
+            # claim_status is a native pg enum; new workflow states must
+            # be added to the type before rows can hold them.
+            with engine.begin() as connection:
+                for value in (
+                    "VEHICLE_INSPECTION",
+                    "SURVEY_REPORT_REVIEW",
+                    "LEGAL_REVIEW",
+                ):
+                    connection.execute(
+                        text(
+                            f"ALTER TYPE claim_status ADD VALUE IF NOT EXISTS '{value}'"
+                        )
+                    )
+
+    if "settlements" in tables:
+        _add_column_if_missing(
+            inspector, "settlements", "settlement_mode", "VARCHAR(20)", "'REPAIR'"
+        )
+        _add_column_if_missing(
+            inspector,
+            "settlements",
+            "settlement_basis",
+            "VARCHAR(20)",
+            "'REIMBURSEMENT'",
+        )
+        _add_column_if_missing(inspector, "settlements", "garage_name", "VARCHAR(200)")
+        _add_column_if_missing(
+            inspector, "settlements", "assessed_amount", "NUMERIC(12, 2)"
+        )
+        _add_column_if_missing(
+            inspector, "settlements", "depreciation_amount", "NUMERIC(12, 2)", "0"
+        )
+        _add_column_if_missing(
+            inspector, "settlements", "excess_amount", "NUMERIC(12, 2)", "0"
+        )
 
 
 def check_database_connection() -> bool:

@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.models.claim import Claim
 from app.models.claim import ClaimStatus
+from app.models.claim import ClaimType
 from app.models.settlement import Settlement
+from app.models.settlement import SettlementMode
 from app.models.settlement import SettlementStatus
 from app.schemas.settlement import InitiatePayoutRequest
 from app.services.audit_service import record_audit_event
@@ -48,9 +50,30 @@ def initiate_payout(
     if existing:
         raise PayoutError("An active settlement already exists for this claim")
 
+    settlement_mode = payload.settlement_mode
+    # Theft claims have no vehicle to repair — they settle as a total
+    # loss at the Insured Declared Value.
+    if claim.claim_type == ClaimType.THEFT:
+        settlement_mode = SettlementMode.TOTAL_LOSS
+
+    payout_amount = payload.resolve_payout_amount()
+
+    # IDV is the contractual ceiling on any payout.
+    if claim.idv is not None and payout_amount > float(claim.idv):
+        raise PayoutError(
+            f"Payout amount {payout_amount:.2f} exceeds the vehicle's "
+            f"Insured Declared Value of {float(claim.idv):.2f}"
+        )
+
     settlement = Settlement(
         claim_id=claim.id,
-        payout_amount=payload.payout_amount,
+        payout_amount=payout_amount,
+        assessed_amount=payload.assessed_amount,
+        depreciation_amount=payload.depreciation_amount,
+        excess_amount=payload.excess_amount,
+        settlement_mode=settlement_mode,
+        settlement_basis=payload.settlement_basis,
+        garage_name=payload.garage_name,
         payment_method=payload.payment_method,
         beneficiary_name=payload.beneficiary_name,
         beneficiary_account=payload.beneficiary_account,
@@ -68,7 +91,16 @@ def initiate_payout(
         action="PAYOUT_INITIATED",
         details={
             "settlement_id": str(settlement.id),
-            "payout_amount": float(payload.payout_amount),
+            "payout_amount": float(payout_amount),
+            "assessed_amount": (
+                float(payload.assessed_amount)
+                if payload.assessed_amount is not None
+                else None
+            ),
+            "depreciation_amount": float(payload.depreciation_amount),
+            "excess_amount": float(payload.excess_amount),
+            "settlement_mode": settlement_mode.value,
+            "settlement_basis": payload.settlement_basis.value,
             "payment_method": payload.payment_method.value,
         },
     )

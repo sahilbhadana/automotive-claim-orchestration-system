@@ -114,15 +114,18 @@ class TestBuildTransitionName:
 
 
 class TestFullWorkflowPath:
-    def test_happy_path_sequence(self):
-        """Every state in the happy path should have exactly one forward transition."""
+    def test_own_damage_happy_path_sequence(self):
+        """The own-damage path follows the claims manual: surveyor,
+        inspection, repair authorization, survey report, approval."""
         happy_path = [
             ClaimStatus.CLAIM_CREATED,
             ClaimStatus.DOCUMENT_VERIFICATION,
             ClaimStatus.POLICY_VALIDATION,
             ClaimStatus.FRAUD_ANALYSIS,
             ClaimStatus.ADJUSTER_ASSIGNMENT,
+            ClaimStatus.VEHICLE_INSPECTION,
             ClaimStatus.REPAIR_ESTIMATION,
+            ClaimStatus.SURVEY_REPORT_REVIEW,
             ClaimStatus.FINAL_APPROVAL,
             ClaimStatus.APPROVED,
             ClaimStatus.PAYOUT,

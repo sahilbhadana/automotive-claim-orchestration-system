@@ -31,8 +31,8 @@ async def get_claim_workflow_state(
     return WorkflowStateRead(
         claim_id=serialize_claim_id(claim.id),
         current_status=claim.status,
-        allowed_transitions=get_allowed_transitions(claim.status),
-        terminal=is_terminal_state(claim.status),
+        allowed_transitions=get_allowed_transitions(claim.status, claim.claim_type),
+        terminal=is_terminal_state(claim.status, claim.claim_type),
     )
 
 
@@ -67,7 +67,9 @@ async def execute_claim_workflow_step(
             previous_status=previous_status,
             current_status=updated_claim.status,
         ),
-        allowed_next_transitions=get_allowed_transitions(updated_claim.status),
-        terminal=is_terminal_state(updated_claim.status),
+        allowed_next_transitions=get_allowed_transitions(
+            updated_claim.status, updated_claim.claim_type
+        ),
+        terminal=is_terminal_state(updated_claim.status, updated_claim.claim_type),
         reason=payload.reason,
     )

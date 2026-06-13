@@ -1,6 +1,30 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createClaim } from "../api/endpoints";
+import type { ClaimType } from "../api/types";
+
+const CLAIM_TYPE_OPTIONS: { value: ClaimType; label: string; hint: string }[] = [
+  {
+    value: "ACCIDENT",
+    label: "Accident / Collision",
+    hint: "Damage to your own vehicle from an accident.",
+  },
+  {
+    value: "THEFT",
+    label: "Theft",
+    hint: "Vehicle stolen — FIR and IDV are mandatory; settles at IDV.",
+  },
+  {
+    value: "THIRD_PARTY",
+    label: "Third-party liability",
+    hint: "Your vehicle harmed someone else or their property — FIR mandatory; decided via legal review (MACT).",
+  },
+  {
+    value: "NATURAL_DISASTER",
+    label: "Natural / man-made disaster",
+    hint: "Flood, fire, storm, earthquake, or vandalism damage.",
+  },
+];
 
 export function NewClaimPage() {
   const navigate = useNavigate();
@@ -11,12 +35,22 @@ export function NewClaimPage() {
     incident_city: "",
     claim_amount: "",
     description: "",
+    claim_type: "ACCIDENT" as ClaimType,
+    fir_number: "",
+    idv: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const update = (key: keyof typeof form) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const firRequired =
+    form.claim_type === "THEFT" || form.claim_type === "THIRD_PARTY";
+  const idvRequired = form.claim_type === "THEFT";
+  const selectedType = CLAIM_TYPE_OPTIONS.find(
+    (o) => o.value === form.claim_type,
+  );
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -30,6 +64,9 @@ export function NewClaimPage() {
         incident_city: form.incident_city,
         claim_amount: Number(form.claim_amount),
         description: form.description,
+        claim_type: form.claim_type,
+        fir_number: form.fir_number || null,
+        idv: form.idv ? Number(form.idv) : null,
       });
       navigate(`/claims/${claim.id}`);
     } catch (err) {
@@ -51,7 +88,7 @@ export function NewClaimPage() {
           </p>
           <p className="have-ready">
             Have ready: your policy number, vehicle registration, accident
-            photos, and the FIR copy for theft or major damage.{" "}
+            photos, and the FIR copy for theft, third-party, or major damage.{" "}
             <Link to="/guide">See the full document list</Link>
           </p>
         </div>
@@ -59,6 +96,21 @@ export function NewClaimPage() {
 
       <form onSubmit={handleSubmit} className="card form-card">
         {error && <div className="alert alert-error">{error}</div>}
+
+        <label className="field">
+          <span>What happened?</span>
+          <select
+            value={form.claim_type}
+            onChange={(e) => update("claim_type")(e.target.value)}
+          >
+            {CLAIM_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {selectedType && <small className="muted">{selectedType.hint}</small>}
+        </label>
 
         <div className="form-row">
           <label className="field">
@@ -106,17 +158,50 @@ export function NewClaimPage() {
           </label>
         </div>
 
+        <div className="form-row">
+          <label className="field">
+            <span>Claim amount (₹)</span>
+            <input
+              type="number"
+              value={form.claim_amount}
+              onChange={(e) => update("claim_amount")(e.target.value)}
+              required
+              min={1}
+              step="0.01"
+              placeholder="75000"
+            />
+          </label>
+          <label className="field">
+            <span>
+              Insured Declared Value (₹){idvRequired ? "" : " — optional"}
+            </span>
+            <input
+              type="number"
+              value={form.idv}
+              onChange={(e) => update("idv")(e.target.value)}
+              required={idvRequired}
+              min={1}
+              step="0.01"
+              placeholder="450000"
+            />
+          </label>
+        </div>
+
         <label className="field">
-          <span>Claim amount (₹)</span>
+          <span>FIR number{firRequired ? " (mandatory)" : " — optional"}</span>
           <input
-            type="number"
-            value={form.claim_amount}
-            onChange={(e) => update("claim_amount")(e.target.value)}
-            required
-            min={1}
-            step="0.01"
-            placeholder="75000"
+            value={form.fir_number}
+            onChange={(e) => update("fir_number")(e.target.value)}
+            required={firRequired}
+            minLength={firRequired ? 3 : undefined}
+            placeholder="FIR-2026-04521"
           />
+          {firRequired && (
+            <small className="muted">
+              An FIR filed at the nearest police station is mandatory for{" "}
+              {form.claim_type === "THEFT" ? "theft" : "third-party"} claims.
+            </small>
+          )}
         </label>
 
         <label className="field">
